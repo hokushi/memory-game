@@ -39,7 +39,7 @@ export function LoginForm() {
     <form
       onSubmit={handleSubmit(onSubmit)}
       noValidate
-      className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-black/10 bg-white/80 p-6 text-left shadow-xl ring-1 ring-black/5 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5 sm:p-8"
+      className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-black/10 bg-white/80 p-6 text-left shadow-xl ring-1 ring-black/5 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5 sm:p-8"
     >
       <h2 className="text-lg font-semibold">ログイン</h2>
 
