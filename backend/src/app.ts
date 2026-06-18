@@ -11,6 +11,10 @@ export function buildApp(): FastifyInstance {
     origin: true,
   });
 
+  app.get("/", async () => {
+    return { service: "memory-game backend", health: "/health" };
+  });
+
   app.get("/health", async () => {
     return { status: "ok" };
   });
