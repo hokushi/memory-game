@@ -124,7 +124,7 @@ export function SignupForm() {
 
       <p className="text-center text-xs text-black/60 dark:text-white/60">
         すでにアカウントをお持ちの方は{" "}
-        <Link href="/" className="font-medium underline underline-offset-2">
+        <Link href="/login" className="font-medium underline underline-offset-2">
           ログイン
         </Link>
       </p>
