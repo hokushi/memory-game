@@ -18,7 +18,7 @@ monorepo（pnpm workspace）。
 ```bash
 pnpm install        # ルートで一括インストール
 pnpm dev:front      # フロント開発サーバー（http://localhost:3000）
-pnpm dev:back       # バックエンド開発サーバー（http://localhost:3001）
+pnpm dev:back       # バックエンド開発サーバー（http://localhost:3002）
 ```
 
 ## DB に持たせる想定（叩き台）

@@ -24,7 +24,7 @@ backend/
 
 ```bash
 cp .env.example .env   # 必要なら編集
-pnpm dev:back          # 開発サーバー（既定 http://localhost:3001）
+pnpm dev:back          # 開発サーバー（既定 http://localhost:3002）
 ```
 
 ルートからのスクリプト: `pnpm dev:back` / `pnpm build:back` / `pnpm start:back`。
@@ -37,5 +37,5 @@ pnpm dev:back          # 開発サーバー（既定 http://localhost:3001）
 
 | 変数 | 既定値 | 説明 |
 | --- | --- | --- |
-| `PORT` | `3001` | 待ち受けポート |
+| `PORT` | `3002` | 待ち受けポート |
 | `HOST` | `0.0.0.0` | 待ち受けホスト |
