@@ -6,32 +6,36 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "メールアドレスを入力してください")
-    .email("メールアドレスの形式が正しくありません"),
-  password: z
-    .string()
-    .min(8, "パスワードは8文字以上で入力してください"),
-});
+const signupSchema = z
+  .object({
+    email: z
+      .string()
+      .min(1, "メールアドレスを入力してください")
+      .email("メールアドレスの形式が正しくありません"),
+    password: z.string().min(8, "パスワードは8文字以上で入力してください"),
+    passwordConfirm: z.string().min(1, "確認用パスワードを入力してください"),
+  })
+  .refine((values) => values.password === values.passwordConfirm, {
+    message: "パスワードが一致しません",
+    path: ["passwordConfirm"],
+  });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
 
-export function LoginForm() {
+export function SignupForm() {
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { email: "", password: "", passwordConfirm: "" },
   });
 
-  const onSubmit = async (values: LoginFormValues) => {
-    // TODO: バックエンド（Fastify）の認証 API ができたら差し替える
+  const onSubmit = async (values: SignupFormValues) => {
+    // TODO: バックエンド（Fastify）の登録 API ができたら差し替える
     await new Promise((resolve) => setTimeout(resolve, 600));
     setSubmittedEmail(values.email);
   };
@@ -42,7 +46,7 @@ export function LoginForm() {
       noValidate
       className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-black/10 bg-white/80 p-6 text-left shadow-xl ring-1 ring-black/5 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5 sm:p-8"
     >
-      <h2 className="text-lg font-semibold">ログイン</h2>
+      <h2 className="text-lg font-semibold">アカウント作成</h2>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-medium">
@@ -70,7 +74,7 @@ export function LoginForm() {
         <input
           id="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           aria-invalid={!!errors.password}
           {...register("password")}
           className="rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground dark:border-white/20"
@@ -82,12 +86,31 @@ export function LoginForm() {
         )}
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="passwordConfirm" className="text-sm font-medium">
+          パスワード（確認）
+        </label>
+        <input
+          id="passwordConfirm"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={!!errors.passwordConfirm}
+          {...register("passwordConfirm")}
+          className="rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground dark:border-white/20"
+        />
+        {errors.passwordConfirm && (
+          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+            {errors.passwordConfirm.message}
+          </p>
+        )}
+      </div>
+
       <button
         type="submit"
         disabled={isSubmitting}
         className="rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
       >
-        {isSubmitting ? "ログイン中…" : "ログイン"}
+        {isSubmitting ? "作成中…" : "アカウントを作成"}
       </button>
 
       {submittedEmail && (
@@ -95,14 +118,14 @@ export function LoginForm() {
           role="status"
           className="text-center text-xs text-green-600 dark:text-green-400"
         >
-          {submittedEmail} でログインしました（仮）
+          {submittedEmail} でアカウントを作成しました（仮）
         </p>
       )}
 
       <p className="text-center text-xs text-black/60 dark:text-white/60">
-        アカウントをお持ちでない方は{" "}
-        <Link href="/signup" className="font-medium underline underline-offset-2">
-          アカウント作成
+        すでにアカウントをお持ちの方は{" "}
+        <Link href="/" className="font-medium underline underline-offset-2">
+          ログイン
         </Link>
       </p>
     </form>
