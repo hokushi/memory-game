@@ -8,6 +8,10 @@ import { z } from "zod";
 
 const signupSchema = z
   .object({
+    name: z
+      .string()
+      .min(1, "アカウント名を入力してください")
+      .max(50, "アカウント名は50文字以内で入力してください"),
     email: z
       .string()
       .min(1, "メールアドレスを入力してください")
@@ -31,7 +35,7 @@ export function SignupForm() {
     formState: { errors, isSubmitting },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { email: "", password: "", passwordConfirm: "" },
+    defaultValues: { name: "", email: "", password: "", passwordConfirm: "" },
   });
 
   const onSubmit = async (values: SignupFormValues) => {
@@ -47,6 +51,25 @@ export function SignupForm() {
       className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-black/10 bg-white/80 p-6 text-left shadow-xl ring-1 ring-black/5 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5 sm:p-8"
     >
       <h2 className="text-lg font-semibold">アカウント作成</h2>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="name" className="text-sm font-medium">
+          アカウント名
+        </label>
+        <input
+          id="name"
+          type="text"
+          autoComplete="username"
+          aria-invalid={!!errors.name}
+          {...register("name")}
+          className="rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground dark:border-white/20"
+        />
+        {errors.name && (
+          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+            {errors.name.message}
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-medium">
