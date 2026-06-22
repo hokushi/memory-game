@@ -9,7 +9,7 @@
 monorepo（pnpm workspace）。
 
 - `frontend/` — Next.js（TypeScript / App Router / Tailwind CSS）
-- `backend/` — Fastify（TypeScript）※これから導入
+- `backend/` — Fastify（TypeScript / ESM）
 - ローカル開発は Docker の PostgreSQL を使用（AWS には触れずコスト 0）
 - スキーマはマイグレーション（SQL）で管理し、同じものを後で RDS に流す
 
@@ -18,6 +18,7 @@ monorepo（pnpm workspace）。
 ```bash
 pnpm install        # ルートで一括インストール
 pnpm dev:front      # フロント開発サーバー（http://localhost:3000）
+pnpm dev:back       # バックエンド開発サーバー（http://localhost:3002）
 ```
 
 ## DB に持たせる想定（叩き台）
@@ -35,7 +36,7 @@ docker compose up -d   # PostgreSQL 起動
 - [x] リポジトリ作成
 - [x] 技術構成の決定（Next.js + Fastify / pnpm monorepo）
 - [x] フロント基盤（Next.js セットアップ）
-- [ ] バックエンド基盤（Fastify セットアップ）
+- [x] バックエンド基盤（Fastify セットアップ）
 - [ ] docker-compose + 初期スキーマ
 - [ ] ゲーム本体
 - [ ] RDS へ展開
