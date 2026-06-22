@@ -37,6 +37,16 @@ docker compose down -v          # 停止 + データ削除（まっさらに作�
 - スキーマを変えたいときは `schema.ts` を編集して再度 `db:push`。**差分だけ当たるのでデータは保持される。**
 - DB の中身を GUI で見たいときは `pnpm --filter backend db:studio`（Drizzle Studio）。
 
+#### pgAdmin で見る
+
+`docker compose up -d` で pgAdmin も一緒に起動する。
+
+1. http://localhost:8080 を開く（ログイン: `admin@example.com` / `admin`）
+2. 左ツリーの `memory-game` サーバー（自動登録済み）をクリック → DB パスワード `postgres` を入力
+3. `memory-game` → Schemas → public → Tables → `accounts`
+
+※ いずれもローカル開発用の値。
+
 ### テーブル（`backend/src/db/schema.ts`）
 
 - `accounts` … アカウント（`name` / `email`(unique) / `passwordHash`）。
