@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,7 +30,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 export function SignupForm() {
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -68,8 +69,8 @@ export function SignupForm() {
         return;
       }
 
-      const data = await res.json();
-      setSubmittedEmail(data.account.email);
+      // 登録成功 → ログイン画面へ
+      router.push("/login");
     } catch {
       setServerError("サーバーに接続できませんでした");
     }
@@ -175,15 +176,6 @@ export function SignupForm() {
       >
         {isSubmitting ? "作成中…" : "アカウントを作成"}
       </button>
-
-      {submittedEmail && (
-        <p
-          role="status"
-          className="text-center text-xs text-green-600 dark:text-green-400"
-        >
-          {submittedEmail} でアカウントを作成しました（仮）
-        </p>
-      )}
 
       <p className="text-center text-xs text-black/60 dark:text-white/60">
         すでにアカウントをお持ちの方は{" "}
