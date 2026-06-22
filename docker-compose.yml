@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:17
+    container_name: memory-game-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: memory_game
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # スキーマは Drizzle が管理する（backend で `pnpm db:push`）。
+      # ここでは空の DB を立てるだけ。
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d memory_game"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
