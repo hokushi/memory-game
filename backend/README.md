@@ -32,6 +32,11 @@ pnpm dev:back          # 開発サーバー（既定 http://localhost:3002）
 ## エンドポイント
 
 - `GET /health` … ヘルスチェック（`{ "status": "ok" }`）
+- `POST /auth/signup` … アカウント登録
+  - body: `{ "name": string, "email": string, "password": string(8文字以上) }`
+  - 成功: `201` `{ "account": { id, name, email, createdAt } }`（password は返さない）
+  - メール重複: `409` / バリデーション違反: `400`
+  - パスワードは bcrypt でハッシュ化して `password_hash` に保存
 
 ## 環境変数
 

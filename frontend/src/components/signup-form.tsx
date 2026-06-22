@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,12 +27,16 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+
 export function SignupForm() {
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -39,9 +44,36 @@ export function SignupForm() {
   });
 
   const onSubmit = async (values: SignupFormValues) => {
-    // TODO: バックエンド（Fastify）の登録 API ができたら差し替える
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    setSubmittedEmail(values.email);
+    setServerError(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: values.name,
+          email: values.email,
+          password: values.password,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        // メール重複は該当フィールドにエラー表示
+        if (res.status === 409) {
+          setError("email", {
+            message: data?.error ?? "このメールアドレスは既に登録されています",
+          });
+          return;
+        }
+        setServerError(data?.error ?? "登録に失敗しました");
+        return;
+      }
+
+      // 登録成功 → ログイン画面へ
+      router.push("/login");
+    } catch {
+      setServerError("サーバーに接続できませんでした");
+    }
   };
 
   return (
@@ -128,6 +160,15 @@ export function SignupForm() {
         )}
       </div>
 
+      {serverError && (
+        <p
+          role="alert"
+          className="text-center text-xs text-red-600 dark:text-red-400"
+        >
+          {serverError}
+        </p>
+      )}
+
       <button
         type="submit"
         disabled={isSubmitting}
@@ -135,15 +176,6 @@ export function SignupForm() {
       >
         {isSubmitting ? "作成中…" : "アカウントを作成"}
       </button>
-
-      {submittedEmail && (
-        <p
-          role="status"
-          className="text-center text-xs text-green-600 dark:text-green-400"
-        >
-          {submittedEmail} でアカウントを作成しました（仮）
-        </p>
-      )}
 
       <p className="text-center text-xs text-black/60 dark:text-white/60">
         すでにアカウントをお持ちの方は{" "}
