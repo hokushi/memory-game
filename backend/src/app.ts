@@ -6,12 +6,13 @@ export function buildApp(): FastifyInstance {
     logger: true,
   });
 
-  // CORS の許可オリジン。
-  // - CORS_ORIGIN 未設定（ローカル開発）: すべて許可
-  // - CORS_ORIGIN 設定（本番）: カンマ区切りで指定したオリジンだけ許可
+  // CORS の許可オリジンを「本番 / ローカル」で切り替える。
+  // - 本番 (NODE_ENV === "production"): CORS_ORIGIN に指定したオリジンだけ許可
   //   例: CORS_ORIGIN=https://memory-game.com,https://www.memory-game.com
-  const corsOrigin = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
+  // - ローカル開発: すべて許可
+  const isProd = process.env.NODE_ENV === "production";
+  const corsOrigin = isProd
+    ? (process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) ?? false)
     : true;
 
   app.register(cors, {
