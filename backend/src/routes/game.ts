@@ -19,4 +19,7 @@ export async function gameRoutes(app: FastifyInstance) {
     { schema: { body: createGameBodySchema } },
     gameController.create,
   );
+
+  // ログイン中アカウントのゲーム一覧
+  app.get("/games", gameController.list);
 }
