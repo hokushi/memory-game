@@ -40,8 +40,17 @@ pnpm dev:back          # 開発サーバー（既定 http://localhost:3002）
 - `POST /auth/login` … ログイン（資格情報の照合）
   - body: `{ "email": string, "password": string }`
   - 成功: `200` `{ "account": { id, name, email, createdAt } }`
+  - **アクセストークン（JWT、`accountId` を含む）を httpOnly Cookie `access_token` で発行**（有効期限 7日）
   - メール不在・パスワード不一致: ともに `401`（同一メッセージで区別しない）
-  - ※ セッション/トークン発行は未実装
+- `GET /account/me` … ログイン中のアカウント情報（要認証）
+  - Cookie の JWT を検証し、`accountId` からアカウントを返す
+  - 成功: `200` `{ "account": { id, name, email, createdAt } }`
+  - トークン無し・無効: `401`
+
+## 認証
+
+- ログインで JWT を httpOnly Cookie（`access_token`）に保存し、以降は毎リクエストの Cookie から検証する。
+- 保護ルートは `app.authenticate`（preHandler）で `request.jwtVerify()` を実行。
 
 ## 環境変数
 
@@ -49,3 +58,4 @@ pnpm dev:back          # 開発サーバー（既定 http://localhost:3002）
 | --- | --- | --- |
 | `PORT` | `3002` | 待ち受けポート |
 | `HOST` | `0.0.0.0` | 待ち受けホスト |
+| `JWT_SECRET` | `dev-secret-change-me` | JWT 署名鍵（本番は必ず変更）|

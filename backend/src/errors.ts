@@ -17,3 +17,11 @@ export class InvalidCredentialsError extends Error {
     this.name = "InvalidCredentialsError";
   }
 }
+
+// 未認証（トークンが無い・無効・アカウント不在）。
+export class UnauthenticatedError extends Error {
+  constructor(message = "認証が必要です") {
+    super(message);
+    this.name = "UnauthenticatedError";
+  }
+}

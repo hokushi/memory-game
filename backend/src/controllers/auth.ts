@@ -27,6 +27,17 @@ export const authController = {
 
     try {
       const account = await authService.login(body);
+
+      // account.id を入れたアクセストークンを発行し、httpOnly Cookie で渡す。
+      const token = await reply.jwtSign({ accountId: account.id });
+      reply.setCookie("access_token", token, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7, // 7日（トークンの有効期限に合わせる）
+      });
+
       return reply.code(200).send({ account });
     } catch (err) {
       if (err instanceof InvalidCredentialsError) {
