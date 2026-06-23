@@ -15,6 +15,11 @@ export type AccountSummary = {
   createdAt: Date;
 };
 
+// パスワード照合用にハッシュも含めて取得する型
+export type AccountWithPassword = AccountSummary & {
+  passwordHash: string;
+};
+
 // 純粋なデータアクセスのみ。業務ルールは service 層に置く。
 export const accountRepository = {
   // メールでアカウントを探す（無ければ undefined）
@@ -25,6 +30,25 @@ export const accountRepository = {
         name: accounts.name,
         email: accounts.email,
         createdAt: accounts.createdAt,
+      })
+      .from(accounts)
+      .where(eq(accounts.email, email))
+      .limit(1);
+
+    return account;
+  },
+
+  // ログインのパスワード照合用。passwordHash も含めて取得する。
+  async findByEmailWithPassword(
+    email: string,
+  ): Promise<AccountWithPassword | undefined> {
+    const [account] = await db
+      .select({
+        id: accounts.id,
+        name: accounts.name,
+        email: accounts.email,
+        createdAt: accounts.createdAt,
+        passwordHash: accounts.passwordHash,
       })
       .from(accounts)
       .where(eq(accounts.email, email))

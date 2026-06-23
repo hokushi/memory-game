@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,8 +18,10 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+
 export function LoginForm() {
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     register,
@@ -31,9 +33,16 @@ export function LoginForm() {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
-    // TODO: バックエンド（Fastify）の認証 API ができたら差し替える
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    setSubmittedEmail(values.email);
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: values.email, password: values.password }),
+    });
+
+    if (res.ok) {
+      // ログイン成功 → ルートへ
+      router.push("/");
+    }
   };
 
   return (
@@ -89,15 +98,6 @@ export function LoginForm() {
       >
         {isSubmitting ? "ログイン中…" : "ログイン"}
       </button>
-
-      {submittedEmail && (
-        <p
-          role="status"
-          className="text-center text-xs text-green-600 dark:text-green-400"
-        >
-          {submittedEmail} でログインしました（仮）
-        </p>
-      )}
 
       <p className="text-center text-xs text-black/60 dark:text-white/60">
         アカウントをお持ちでない方は{" "}

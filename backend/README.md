@@ -37,6 +37,11 @@ pnpm dev:back          # 開発サーバー（既定 http://localhost:3002）
   - 成功: `201` `{ "account": { id, name, email, createdAt } }`（password は返さない）
   - メール重複: `409` / バリデーション違反: `400`
   - パスワードは bcrypt でハッシュ化して `password_hash` に保存
+- `POST /auth/login` … ログイン（資格情報の照合）
+  - body: `{ "email": string, "password": string }`
+  - 成功: `200` `{ "account": { id, name, email, createdAt } }`
+  - メール不在・パスワード不一致: ともに `401`（同一メッセージで区別しない）
+  - ※ セッション/トークン発行は未実装
 
 ## 環境変数
 
