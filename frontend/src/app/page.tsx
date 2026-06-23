@@ -1,54 +1,56 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { serverGet } from "@/lib/server-api";
 import { CreateGameDialog } from "@/components/create-game-dialog";
+import { GameImageSlideshow } from "@/components/game-image-slideshow";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
-
-type Account = {
+type Game = {
   id: number;
   name: string;
-  email: string;
+  size: number;
   createdAt: string;
 };
 
-export default function Home() {
-  const router = useRouter();
-  const [account, setAccount] = useState<Account | null>(null);
+// TODO: 本来は S3 の画像URL配列をゲームごとに API から受け取る。今はモック。
+const MOCK_IMAGES = ["/mock-1.webp", "/mock-2.jpeg", "/mock-3.jpeg"];
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/account/me`, {
-          credentials: "include",
-        });
-        if (!res.ok) {
-          // 未ログイン → ログイン画面へ
-          router.replace("/login");
-          return;
-        }
-        const data = await res.json();
-        setAccount(data.account);
-      } catch {
-        router.replace("/login");
-      }
-    };
-    load();
-  }, [router]);
-
-  // リダイレクト中
-  if (!account) return null;
+export default async function Home() {
+  // 未ログインのガードは middleware が担当（ここはログイン済み前提）
+  const gamesRes = await serverGet<{ games: Game[] }>("/games");
+  const games = gamesRes?.games ?? [];
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-      <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-        Memory Game
-      </h1>
-      <p className="text-balance text-base text-black/60 dark:text-white/60">
-        ようこそ {account.name} さん。
-      </p>
-      <CreateGameDialog />
+    <main className="flex flex-1 flex-col p-8">
+      {/* 画面左上: 見出し + 空メッセージ */}
+      <div className="flex flex-col items-start gap-1 text-left">
+        <h1 className="text-2xl font-bold tracking-tight">ゲーム一覧</h1>
+        {games.length === 0 && (
+          <p className="text-sm text-black/60 dark:text-white/60">
+            まだゲームがありません。「ゲーム作成」から作りましょう。
+          </p>
+        )}
+      </div>
+
+      {/* 一覧と作成ボタン（上寄せで余白を詰める） */}
+      <div className="flex flex-1 flex-col items-center justify-start gap-6 pt-4">
+        {games.length > 0 && (
+          <ul className="grid w-full max-w-7xl grid-cols-3 gap-6">
+            {games.map((game) => (
+              <li
+                key={game.id}
+                className="flex flex-col gap-3 rounded-lg border border-black/10 px-4 py-3 dark:border-white/10"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{game.name}</span>
+                  <span className="text-sm text-black/60 dark:text-white/60">
+                    {game.size}×{game.size}
+                  </span>
+                </div>
+                <GameImageSlideshow images={MOCK_IMAGES} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <CreateGameDialog />
+      </div>
     </main>
   );
 }
