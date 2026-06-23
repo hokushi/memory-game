@@ -4,6 +4,7 @@ import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
 import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/account.js";
+import { gameRoutes } from "./routes/game.js";
 import { authenticate } from "./middleware/authenticate.js";
 
 export function buildApp(): FastifyInstance {
@@ -52,6 +53,7 @@ export function buildApp(): FastifyInstance {
     protectedRoutes.addHook("preHandler", authenticate);
 
     await protectedRoutes.register(accountRoutes);
+    await protectedRoutes.register(gameRoutes);
   });
 
   return app;

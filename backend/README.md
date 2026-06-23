@@ -46,6 +46,10 @@ pnpm dev:back          # 開発サーバー（既定 http://localhost:3002）
   - Cookie の JWT を検証し、`accountId` からアカウントを返す
   - 成功: `200` `{ "account": { id, name, email, createdAt } }`
   - トークン無し・無効: `401`
+- `POST /games` … ゲーム作成（要認証）
+  - body: `{ "name": string(1〜50), "size": 4 | 6 | 8 }`
+  - 成功: `201` `{ "game": { id, name, size, createdAt } }`
+  - バリデーション違反: `400` / 未認証: `401`
 
 ## 認証
 

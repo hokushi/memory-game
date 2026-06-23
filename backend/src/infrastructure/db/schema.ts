@@ -1,4 +1,12 @@
-import { bigint, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  bigint,
+  check,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 // ============================================================
 // memory-game スキーマ（あるべき完成形をここに宣言する）
@@ -20,5 +28,25 @@ export const accounts = pgTable("accounts", {
     .notNull()
     .defaultNow(),
 });
+
+// games: 神経衰弱のゲーム
+// size はボードの一辺（4 / 6 / 8 のみ。4×4・6×6・8×8 を表す）。
+export const games = pgTable(
+  "games",
+  {
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    name: text("name").notNull(),
+    size: smallint("size").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [check("games_size_check", sql`${table.size} in (4, 6, 8)`)],
+);
 
 // 今後のテーブル（例: scores）もこのファイルに追記していく
