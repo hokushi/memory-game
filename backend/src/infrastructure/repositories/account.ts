@@ -22,6 +22,22 @@ export type AccountWithPassword = AccountSummary & {
 
 // 純粋なデータアクセスのみ。業務ルールは service 層に置く。
 export const accountRepository = {
+  // id でアカウントを探す（無ければ undefined）
+  async findById(id: number): Promise<AccountSummary | undefined> {
+    const [account] = await db
+      .select({
+        id: accounts.id,
+        name: accounts.name,
+        email: accounts.email,
+        createdAt: accounts.createdAt,
+      })
+      .from(accounts)
+      .where(eq(accounts.id, id))
+      .limit(1);
+
+    return account;
+  },
+
   // メールでアカウントを探す（無ければ undefined）
   async findByEmail(email: string): Promise<AccountSummary | undefined> {
     const [account] = await db

@@ -36,6 +36,8 @@ export function LoginForm() {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      // httpOnly Cookie を受け取るため
+      credentials: "include",
       body: JSON.stringify({ email: values.email, password: values.password }),
     });
 
