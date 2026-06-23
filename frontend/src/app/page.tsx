@@ -16,7 +16,6 @@ type Account = {
 export default function Home() {
   const router = useRouter();
   const [account, setAccount] = useState<Account | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -33,20 +32,10 @@ export default function Home() {
         setAccount(data.account);
       } catch {
         router.replace("/login");
-      } finally {
-        setLoading(false);
       }
     };
     load();
   }, [router]);
-
-  if (loading) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-8 text-sm text-black/50 dark:text-white/50">
-        読み込み中…
-      </main>
-    );
-  }
 
   // リダイレクト中
   if (!account) return null;
