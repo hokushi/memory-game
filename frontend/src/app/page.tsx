@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CreateGameDialog } from "@/components/create-game-dialog";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
@@ -56,15 +57,9 @@ export default function Home() {
         Memory Game
       </h1>
       <p className="text-balance text-base text-black/60 dark:text-white/60">
-        ようこそ {account.name} さん。ゲーム本体はこれから実装します。
+        ようこそ {account.name} さん。
       </p>
-      <button
-        type="button"
-        disabled
-        className="rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background opacity-50"
-      >
-        ゲームを始める（準備中）
-      </button>
+      <CreateGameDialog />
     </main>
   );
 }
