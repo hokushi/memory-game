@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toast } from "sonner";
+import { createGame } from "@/lib/actions/game";
 
 const SIZES = [4, 6, 8] as const;
 
@@ -18,6 +21,7 @@ const createGameSchema = z.object({
 type CreateGameValues = z.infer<typeof createGameSchema>;
 
 export function CreateGameDialog() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const {
@@ -39,10 +43,16 @@ export function CreateGameDialog() {
     reset();
   };
 
-  const onSubmit = (values: CreateGameValues) => {
-    // TODO: ゲーム作成 API ができたら接続する
-    console.log("create game", values);
+  const onSubmit = async (values: CreateGameValues) => {
+    const result = await createGame(values);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("ゲームを作成しました");
     close();
+    router.refresh();
   };
 
   return (
