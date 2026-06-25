@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import type { Game } from "@/lib/actions/game";
 
 type Props = {
@@ -36,6 +37,11 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
     setPhotos((prev) => [...prev, ...picked]);
     // 同じファイルを選び直せるように value をリセット
     e.target.value = "";
+  };
+
+  const handleConfirm = () => {
+    // TODO: 次のステップで S3 へのアップロードを実装する
+    toast.success(`${photos.length}枚を確定しました`);
   };
 
   return (
@@ -94,7 +100,7 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
           )}
         </div>
 
-        {/* フッター: 一番下に小さい「写真選択」ボタン */}
+        {/* フッター: 左に枚数、右に「写真選択」「写真確定」 */}
         <div className="flex items-center justify-between">
           <span className="text-xs">
             <span className="text-black/60 dark:text-white/60">
@@ -106,22 +112,34 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
               </span>
             )}
           </span>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handlePick}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={isFull}
-            className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            写真選択
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePick}
+              className="hidden"
+            />
+            {/* 写真選択: セカンダリ（枠線）。何度も押して追加する */}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={isFull}
+              className="rounded-full border border-black/15 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-black/[.04] disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/[.06]"
+            >
+              写真選択
+            </button>
+            {/* 写真確定: プライマリ（塗り）。必要枚数が揃うまで無効 */}
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={!isFull}
+              className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              写真確定
+            </button>
+          </div>
         </div>
       </div>
     </div>
