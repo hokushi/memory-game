@@ -6,6 +6,7 @@ import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/account.js";
 import { gameRoutes } from "./routes/game.js";
 import { authenticate } from "./middleware/authenticate.js";
+import { env, isProd } from "./config/env.js";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -16,9 +17,10 @@ export function buildApp(): FastifyInstance {
   // - 本番 (NODE_ENV === "production"): CORS_ORIGIN に指定したオリジンだけ許可
   //   例: CORS_ORIGIN=https://memory-game.com,https://www.memory-game.com
   // - ローカル開発: すべて許可
-  const isProd = process.env.NODE_ENV === "production";
   const corsOrigin = isProd
-    ? (process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) ?? false)
+    ? env.CORS_ORIGIN
+      ? env.CORS_ORIGIN.split(",").map((o) => o.trim())
+      : false
     : true;
 
   app.register(cors, {
@@ -29,7 +31,7 @@ export function buildApp(): FastifyInstance {
 
   app.register(cookie);
   app.register(jwt, {
-    secret: process.env.JWT_SECRET ?? "dev-secret-change-me",
+    secret: env.JWT_SECRET,
     // アクセストークンは httpOnly Cookie から読む
     cookie: { cookieName: "access_token", signed: false },
     sign: { expiresIn: "7d" },

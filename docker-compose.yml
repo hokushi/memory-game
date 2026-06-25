@@ -27,6 +27,7 @@ services:
     container_name: memory-game-backend
     restart: unless-stopped
     environment:
+      NODE_ENV: local
       PORT: 3002
       HOST: 0.0.0.0
       # コンテナ内からは localhost ではなく db サービス名で繋ぐ

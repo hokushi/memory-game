@@ -1,11 +1,9 @@
 import { buildApp } from "./app.js";
-
-const PORT = Number(process.env.PORT ?? 3002);
-const HOST = process.env.HOST ?? "0.0.0.0";
+import { env } from "./config/env.js";
 
 const app = buildApp();
 
-app.listen({ port: PORT, host: HOST }).catch((err) => {
+app.listen({ port: env.PORT, host: env.HOST }).catch((err) => {
   app.log.error(err);
   process.exit(1);
 });

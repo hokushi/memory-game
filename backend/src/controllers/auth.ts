@@ -5,6 +5,7 @@ import {
   type SignupInput,
 } from "../services/auth.js";
 import { EmailAlreadyExistsError, InvalidCredentialsError } from "../errors.js";
+import { isProd } from "../config/env.js";
 
 export const authController = {
   async signup(request: FastifyRequest, reply: FastifyReply) {
@@ -34,7 +35,7 @@ export const authController = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: isProd,
         maxAge: 60 * 60 * 24 * 7, // 7日（トークンの有効期限に合わせる）
       });
 
