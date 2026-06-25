@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "docker compose up -d && pnpm dev:front",
+    "up": "docker compose up -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f backend",
     "dev:front": "pnpm --filter frontend dev",
     "build:front": "pnpm --filter frontend build",
     "lint:front": "pnpm --filter frontend lint",

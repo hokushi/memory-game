@@ -1,0 +1,31 @@
+# 開発用 Dockerfile（tsx watch でホットリロード）。
+# 本番用ではない。ビルドコンテキストはリポジトリのルート（docker-compose.yml 参照）。
+FROM node:22-slim
+
+# pnpm を corepack で有効化（package.json の packageManager に追従）
+RUN corepack enable
+
+WORKDIR /app
+
+# 依存解決に必要なマニフェストだけ先にコピーして install レイヤーをキャッシュさせる
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY backend/package.json ./backend/package.json
+COPY frontend/package.json ./frontend/package.json
+
+# backend とその依存だけインストール（frontend の重い依存は入れない）。
+# pnpm 11 は未承認のビルドスクリプト検出で exit 1 になるが node_modules 自体は
+# 展開済みなので、続けて esbuild（tsx が使うネイティブバイナリ）を明示的にビルドする。
+RUN pnpm install --frozen-lockfile --filter backend... || true
+RUN pnpm --filter backend rebuild esbuild
+
+# backend のソースをコピー（src は compose でマウントするので上書きされる）
+COPY backend ./backend
+
+WORKDIR /app/backend
+
+EXPOSE 3002
+
+# スキーマを反映してから dev サーバーを起動する。
+# pnpm 経由だと毎回ワークスペース全体の依存チェック（未承認ビルドで失敗）が走るため、
+# バイナリを直接叩く。tsx watch でホットリロード。
+CMD ["sh", "-c", "node_modules/.bin/drizzle-kit push && node_modules/.bin/tsx watch src/server.ts"]

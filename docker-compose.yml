@@ -19,6 +19,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # バックエンド（Fastify）。tsx watch でホットリロード。
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    container_name: memory-game-backend
+    restart: unless-stopped
+    environment:
+      PORT: 3002
+      HOST: 0.0.0.0
+      # コンテナ内からは localhost ではなく db サービス名で繋ぐ
+      DATABASE_URL: postgres://postgres:postgres@db:5432/memory_game
+      JWT_SECRET: dev-secret-change-me
+    ports:
+      - "3002:3002"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # ソースだけマウントしてホットリロード（node_modules はイメージ側を使う）
+      - ./backend/src:/app/backend/src
+
   # DB を GUI で見るための pgAdmin（http://localhost:8080）
   pgadmin:
     image: dpage/pgadmin4:latest
