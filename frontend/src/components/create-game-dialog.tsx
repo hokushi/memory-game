@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { createGame } from "@/lib/actions/game";
+import { createGame, type Game } from "@/lib/actions/game";
+import { PhotoSelectDialog } from "./photo-select-dialog";
 
 const SIZES = [4, 6, 8] as const;
 
@@ -22,7 +23,10 @@ type CreateGameValues = z.infer<typeof createGameSchema>;
 
 export function CreateGameDialog() {
   const router = useRouter();
+  // 作成フォームの開閉状態
   const [open, setOpen] = useState(false);
+  // 作成後に開く写真選択ダイアログ用。作成したゲームを保持する。
+  const [createdGame, setCreatedGame] = useState<Game | null>(null);
 
   const {
     register,
@@ -51,7 +55,9 @@ export function CreateGameDialog() {
     }
 
     toast.success("ゲームを作成しました");
+    // 作成フォームを閉じて、続けて写真選択ダイアログを開く
     close();
+    setCreatedGame(result.game);
     router.refresh();
   };
 
@@ -145,14 +151,21 @@ export function CreateGameDialog() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  作成
+                  写真選択へ
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {createdGame && (
+        <PhotoSelectDialog
+          game={createdGame}
+          onClose={() => setCreatedGame(null)}
+        />
       )}
     </>
   );

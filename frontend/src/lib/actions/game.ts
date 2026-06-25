@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
@@ -9,7 +10,16 @@ export type CreateGameInput = {
   size: number;
 };
 
-export type CreateGameResult = { ok: true } | { ok: false; error: string };
+export type Game = {
+  id: number;
+  name: string;
+  size: number;
+  createdAt: string;
+};
+
+export type CreateGameResult =
+  | { ok: true; game: Game }
+  | { ok: false; error: string };
 
 // ゲーム作成の Server Action。
 // サーバー側で access_token Cookie を backend に転送して POST する。
@@ -18,7 +28,7 @@ export async function createGame(
 ): Promise<CreateGameResult> {
   const token = (await cookies()).get("access_token")?.value;
   if (!token) {
-    return { ok: false, error: "認証が必要です" };
+    redirect("/login");
   }
 
   try {
@@ -36,7 +46,8 @@ export async function createGame(
       return { ok: false, error: data?.error ?? "ゲームの作成に失敗しました" };
     }
 
-    return { ok: true };
+    const data = (await res.json()) as { game: Game };
+    return { ok: true, game: data.game };
   } catch {
     return { ok: false, error: "サーバーに接続できませんでした" };
   }
