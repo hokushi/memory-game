@@ -48,8 +48,12 @@ pnpm dev:back          # 開発サーバー（既定 http://localhost:3002）
   - トークン無し・無効: `401`
 - `POST /games` … ゲーム作成（要認証）
   - body: `{ "name": string(1〜50), "size": 4 | 6 | 8 }`
+  - オーナー（account_id）はトークンの `accountId` から設定
   - 成功: `201` `{ "game": { id, name, size, createdAt } }`
   - バリデーション違反: `400` / 未認証: `401`
+- `GET /games` … ログイン中アカウントのゲーム一覧（要認証）
+  - 成功: `200` `{ "games": [{ id, name, size, createdAt }] }`（新しい順）
+  - 未認証: `401`
 
 ## 認証
 

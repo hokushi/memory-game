@@ -1,12 +1,26 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { gameService, type CreateGameInput } from "../services/game.js";
+import { gameService } from "../services/game.js";
+
+type CreateGameBody = {
+  name: string;
+  size: number;
+};
 
 export const gameController = {
   async create(request: FastifyRequest, reply: FastifyReply) {
     // バリデーションはルートの JSON Schema 済み
-    const body = request.body as CreateGameInput;
+    const body = request.body as CreateGameBody;
+    // オーナーはリクエストボディではなくトークン（accountId）から決める
+    const { accountId } = request.user;
 
-    const game = await gameService.create(body);
+    const game = await gameService.create({ accountId, ...body });
     return reply.code(201).send({ game });
+  },
+
+  async list(request: FastifyRequest, reply: FastifyReply) {
+    const { accountId } = request.user;
+
+    const games = await gameService.listByAccount(accountId);
+    return reply.code(200).send({ games });
   },
 };

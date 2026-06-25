@@ -37,6 +37,10 @@ export const games = pgTable(
     id: bigint("id", { mode: "number" })
       .primaryKey()
       .generatedAlwaysAsIdentity(),
+    // オーナー（作成したアカウント）。アカウント削除時はゲームも削除。
+    accountId: bigint("account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     size: smallint("size").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
