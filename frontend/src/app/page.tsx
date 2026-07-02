@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { serverGet } from "@/lib/server-api";
 import { CreateGameDialog } from "@/components/create-game-dialog";
 import { GameImageSlideshow } from "@/components/game-image-slideshow";
@@ -45,6 +46,12 @@ export default async function Home() {
                   </span>
                 </div>
                 <GameImageSlideshow images={MOCK_IMAGES} />
+                <Link
+                  href={`/games/${game.id}`}
+                  className="rounded-full bg-foreground px-4 py-1.5 text-center text-xs font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  プレイする
+                </Link>
               </li>
             ))}
           </ul>

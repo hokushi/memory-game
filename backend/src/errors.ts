@@ -25,3 +25,20 @@ export class UnauthenticatedError extends Error {
     this.name = "UnauthenticatedError";
   }
 }
+
+// ゲームが存在しない、または他アカウントのゲーム。
+// 「存在しない」と「他人のものだから見せない」を区別しない（所有者情報を漏らさないため）。
+export class GameNotFoundError extends Error {
+  constructor(message = "ゲームが見つかりません") {
+    super(message);
+    this.name = "GameNotFoundError";
+  }
+}
+
+// 不正な操作（範囲外 position、既に matched、同一 position の二重めくり、完了済みゲームへの flip）。
+export class InvalidMoveError extends Error {
+  constructor(message = "不正な操作です") {
+    super(message);
+    this.name = "InvalidMoveError";
+  }
+}

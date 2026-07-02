@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -22,6 +23,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 export function LoginForm() {
   const router = useRouter();
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const {
     register,
@@ -33,6 +35,8 @@ export function LoginForm() {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
+    setLoginError(null);
+
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -44,7 +48,12 @@ export function LoginForm() {
     if (res.ok) {
       // ログイン成功 → ルートへ
       router.push("/");
+      return;
     }
+
+    // メール不在・パスワード不一致を区別せず同じメッセージを表示する
+    // （どのメールアドレスが登録済みかを攻撃者に漏らさないため）
+    setLoginError("メールアドレスまたはパスワードが違います");
   };
 
   return (
@@ -54,6 +63,12 @@ export function LoginForm() {
       className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-black/10 bg-white/80 p-6 text-left shadow-xl ring-1 ring-black/5 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5 sm:p-8"
     >
       <h2 className="text-lg font-semibold">ログイン</h2>
+
+      {loginError && (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          {loginError}
+        </p>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-medium">

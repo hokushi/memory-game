@@ -1,11 +1,13 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   check,
   pgTable,
   smallint,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // ============================================================
@@ -43,6 +45,10 @@ export const games = pgTable(
       .references(() => accounts.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     size: smallint("size").notNull(),
+    // 1枚目がめくられ2枚目待ちの position。無ければ null（ターンの途中状態）。
+    pendingFlipPosition: smallint("pending_flip_position"),
+    // 全ペアが一致した時刻。null なら進行中。
+    completedAt: timestamp("completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -51,6 +57,27 @@ export const games = pgTable(
       .defaultNow(),
   },
   (table) => [check("games_size_check", sql`${table.size} in (4, 6, 8)`)],
+);
+
+// game_cards: 神経衰弱の盤面。1 ゲームにつき size*size 行。
+// pairKey は (size*size)/2 種類のいずれかで、同じ pairKey が必ず2枚存在する。
+// 写真アップロード導入後は pairKey を実画像 URL にマッピングする想定（今は仮の整数値）。
+export const gameCards = pgTable(
+  "game_cards",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    gameId: bigint("game_id", { mode: "number" })
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    position: smallint("position").notNull(),
+    pairKey: smallint("pair_key").notNull(),
+    matched: boolean("matched").notNull().default(false),
+  },
+  (table) => [
+    unique("game_cards_game_id_position_key").on(table.gameId, table.position),
+    check("game_cards_position_check", sql`${table.position} >= 0`),
+    check("game_cards_pair_key_check", sql`${table.pairKey} >= 0`),
+  ],
 );
 
 // 今後のテーブル（例: scores）もこのファイルに追記していく
