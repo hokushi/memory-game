@@ -7,10 +7,9 @@ type Game = {
   name: string;
   size: number;
   createdAt: string;
+  // S3 の写真の表示用URL（署名付きGET）。未アップロードなら空配列。
+  photoUrls: string[];
 };
-
-// TODO: 本来は S3 の画像URL配列をゲームごとに API から受け取る。今はモック。
-const MOCK_IMAGES = ["/mock-1.webp", "/mock-2.jpeg", "/mock-3.jpeg"];
 
 export default async function Home() {
   // 未ログインのガードは middleware が担当（ここはログイン済み前提）
@@ -44,7 +43,7 @@ export default async function Home() {
                     {game.size}×{game.size}
                   </span>
                 </div>
-                <GameImageSlideshow images={MOCK_IMAGES} />
+                <GameImageSlideshow images={game.photoUrls} />
               </li>
             ))}
           </ul>

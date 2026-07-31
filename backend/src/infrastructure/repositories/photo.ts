@@ -1,9 +1,15 @@
-import { eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { gamePhotos } from "../db/schema.js";
 
 export type GamePhoto = {
   id: number;
+  s3Key: string;
+};
+
+// gameId 付きの写真（複数ゲームをまとめて取得するとき用）
+export type GamePhotoWithGameId = {
+  gameId: number;
   s3Key: string;
 };
 
@@ -27,5 +33,17 @@ export const photoRepository = {
         .values(keys.map((s3Key) => ({ gameId, s3Key })))
         .returning(photoColumns);
     });
+  },
+
+  // 複数ゲームの写真を一括取得する（一覧表示で N+1 を避けるため）。
+  // 挿入順（id 昇順）で返す。
+  async findByGameIds(gameIds: number[]): Promise<GamePhotoWithGameId[]> {
+    if (gameIds.length === 0) return [];
+
+    return db
+      .select({ gameId: gamePhotos.gameId, s3Key: gamePhotos.s3Key })
+      .from(gamePhotos)
+      .where(inArray(gamePhotos.gameId, gameIds))
+      .orderBy(asc(gamePhotos.id));
   },
 };

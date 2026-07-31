@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { gameService } from "../services/game.js";
+import { photoService } from "../services/photo.js";
 
 type CreateGameBody = {
   name: string;
@@ -21,6 +22,16 @@ export const gameController = {
     const { accountId } = request.user;
 
     const games = await gameService.listByAccount(accountId);
-    return reply.code(200).send({ games });
+
+    // 各ゲームに表示用の写真URL（署名付きGET）を付ける
+    const photoUrlsByGame = await photoService.getPhotoUrlsByGameIds(
+      games.map((game) => game.id),
+    );
+    const gamesWithPhotos = games.map((game) => ({
+      ...game,
+      photoUrls: photoUrlsByGame[game.id] ?? [],
+    }));
+
+    return reply.code(200).send({ games: gamesWithPhotos });
   },
 };

@@ -16,7 +16,14 @@ export function GameImageSlideshow({ images }: { images: string[] }) {
     return () => clearInterval(id);
   }, [images.length]);
 
-  if (images.length === 0) return null;
+  // 写真未アップロードのゲーム向けプレースホルダ
+  if (images.length === 0) {
+    return (
+      <div className="flex h-64 w-full items-center justify-center rounded-md bg-black/5 text-sm text-black/40 dark:bg-white/5 dark:text-white/40">
+        写真がありません
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2">

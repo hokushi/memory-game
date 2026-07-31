@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3, S3_BUCKET } from "../infrastructure/s3/index.js";
 import { gameRepository } from "../infrastructure/repositories/game.js";
@@ -9,8 +9,11 @@ import {
 } from "../infrastructure/repositories/photo.js";
 import { GameNotFoundError } from "../errors.js";
 
-// 署名付き URL の有効期限（秒）。アップロードが終わる程度の短さにする。
+// アップロード用 署名付き URL の有効期限（秒）。アップロードが終わる程度の短さにする。
 const UPLOAD_URL_TTL_SECONDS = 300;
+
+// 表示用 署名付き GET URL の有効期限（秒）。ページ表示中に切れない程度に。
+const VIEW_URL_TTL_SECONDS = 60 * 60;
 
 export type PhotoUploadRequest = {
   contentType: string;
@@ -76,5 +79,24 @@ export const photoService = {
     }
 
     return photoRepository.replaceForGame(gameId, keys);
+  },
+
+  // 複数ゲームの写真を、表示用の署名付き GET URL にして gameId ごとに返す。
+  // バケットは非公開なので、閲覧にも一時的な署名付き URL が要る。
+  // 返り値: { [gameId]: [url, url, ...] }
+  async getPhotoUrlsByGameIds(
+    gameIds: number[],
+  ): Promise<Record<number, string[]>> {
+    const photos = await photoRepository.findByGameIds(gameIds);
+
+    const result: Record<number, string[]> = {};
+    for (const { gameId, s3Key } of photos) {
+      const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: s3Key });
+      const url = await getSignedUrl(s3, command, {
+        expiresIn: VIEW_URL_TTL_SECONDS,
+      });
+      (result[gameId] ??= []).push(url);
+    }
+    return result;
   },
 };
