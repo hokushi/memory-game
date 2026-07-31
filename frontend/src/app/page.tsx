@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { serverGet } from "@/lib/server-api";
 import { CreateGameDialog } from "@/components/create-game-dialog";
 import { GameImageSlideshow } from "@/components/game-image-slideshow";
@@ -45,7 +46,16 @@ export default async function Home() {
                   </span>
                 </div>
                 <GameImageSlideshow images={game.photoUrls} />
-                <GamePhotosEditor game={game} />
+                {game.photoUrls.length >= (game.size * game.size) / 2 ? (
+                  <Link
+                    href={`/games/${game.id}/play`}
+                    className="self-start rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90"
+                  >
+                    プレイ
+                  </Link>
+                ) : (
+                  <GamePhotosEditor game={game} />
+                )}
               </li>
             ))}
           </ul>

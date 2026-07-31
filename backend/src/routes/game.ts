@@ -88,6 +88,13 @@ export async function gameRoutes(app: FastifyInstance) {
   // ログイン中アカウントのゲーム一覧
   app.get("/games", gameController.list);
 
+  // 単一ゲームの取得（プレイ画面用。写真URLも含む）
+  app.get(
+    "/games/:gameId",
+    { schema: { params: gameParamsSchema } },
+    gameController.get,
+  );
+
   // 写真アップロード用の署名付き URL を発行する
   app.post(
     "/games/:gameId/photos/presign",

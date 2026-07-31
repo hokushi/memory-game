@@ -1,10 +1,15 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { gameService } from "../services/game.js";
 import { photoService } from "../services/photo.js";
+import { GameNotFoundError } from "../errors.js";
 
 type CreateGameBody = {
   name: string;
   size: number;
+};
+
+type GameParams = {
+  gameId: number;
 };
 
 export const gameController = {
@@ -16,6 +21,28 @@ export const gameController = {
 
     const game = await gameService.create({ accountId, ...body });
     return reply.code(201).send({ game });
+  },
+
+  async get(request: FastifyRequest, reply: FastifyReply) {
+    const { gameId } = request.params as GameParams;
+    const { accountId } = request.user;
+
+    try {
+      const game = await gameService.getForAccount(accountId, gameId);
+
+      // 表示用の写真URL（署名付きGET）を付ける
+      const photoUrlsByGame = await photoService.getPhotoUrlsByGameIds([
+        game.id,
+      ]);
+      return reply.code(200).send({
+        game: { ...game, photoUrls: photoUrlsByGame[game.id] ?? [] },
+      });
+    } catch (err) {
+      if (err instanceof GameNotFoundError) {
+        return reply.code(404).send({ error: err.message });
+      }
+      throw err;
+    }
   },
 
   async list(request: FastifyRequest, reply: FastifyReply) {
