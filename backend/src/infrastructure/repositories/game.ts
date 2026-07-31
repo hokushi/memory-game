@@ -41,4 +41,16 @@ export const gameRepository = {
       .where(eq(games.accountId, accountId))
       .orderBy(desc(games.createdAt));
   },
+
+  // 所有者チェック用に id と accountId を取得する（存在しなければ undefined）
+  async findOwnership(
+    id: number,
+  ): Promise<{ id: number; accountId: number } | undefined> {
+    const [row] = await db
+      .select({ id: games.id, accountId: games.accountId })
+      .from(games)
+      .where(eq(games.id, id))
+      .limit(1);
+    return row;
+  },
 };

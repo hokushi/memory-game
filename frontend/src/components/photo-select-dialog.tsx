@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Game } from "@/lib/actions/game";
+import { createPhotoUploadUrls, savePhotos } from "@/lib/actions/photo";
 
 type Props = {
   game: Game;
@@ -18,6 +19,8 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   // 選択した写真のリスト
   const [photos, setPhotos] = useState<Selected[]>([]);
+  // アップロード中フラグ（二重送信防止 & ボタンの状態表示）
+  const [isUploading, setIsUploading] = useState(false);
 
   // 神経衰弱なのでカードはペア。size×size 枚のカード = (size*size)/2 種類の写真が要る。
   const requiredCount = (game.size * game.size) / 2;
@@ -39,9 +42,53 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
     e.target.value = "";
   };
 
-  const handleConfirm = () => {
-    // TODO: 次のステップで S3 へのアップロードを実装する
-    toast.success(`${photos.length}枚を確定しました`);
+  const handleConfirm = async () => {
+    if (isUploading) return;
+    setIsUploading(true);
+
+    // 署名時とアップロード時で Content-Type を一致させる必要があるので、
+    // ここで一度だけ確定させて両方で使い回す。
+    const contentTypes = photos.map(
+      (p) => p.file.type || "application/octet-stream",
+    );
+
+    try {
+      // 1. backend から署名付きアップロード URL を取得
+      const presign = await createPhotoUploadUrls(game.id, contentTypes);
+      if (!presign.ok) {
+        toast.error(presign.error);
+        return;
+      }
+
+      // 2. 各ファイルを S3 に直接 PUT（バイナリは backend を経由しない）
+      await Promise.all(
+        presign.uploads.map(async (upload, i) => {
+          const res = await fetch(upload.url, {
+            method: "PUT",
+            headers: { "Content-Type": contentTypes[i] },
+            body: photos[i].file,
+          });
+          if (!res.ok) {
+            throw new Error(`S3 へのアップロードに失敗しました (${res.status})`);
+          }
+        }),
+      );
+
+      // 3. アップロード済みのキーを backend に保存
+      const keys = presign.uploads.map((u) => u.key);
+      const saved = await savePhotos(game.id, keys);
+      if (!saved.ok) {
+        toast.error(saved.error);
+        return;
+      }
+
+      toast.success(`${photos.length}枚を保存しました`);
+      onClose();
+    } catch {
+      toast.error("写真のアップロードに失敗しました");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -134,10 +181,10 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={!isFull}
+              disabled={!isFull || isUploading}
               className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              写真確定
+              {isUploading ? "アップロード中…" : "写真確定"}
             </button>
           </div>
         </div>
