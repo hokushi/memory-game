@@ -1,6 +1,7 @@
 import { serverGet } from "@/lib/server-api";
 import { CreateGameDialog } from "@/components/create-game-dialog";
 import { GameImageSlideshow } from "@/components/game-image-slideshow";
+import { GamePhotosEditor } from "@/components/game-photos-editor";
 
 type Game = {
   id: number;
@@ -44,6 +45,7 @@ export default async function Home() {
                   </span>
                 </div>
                 <GameImageSlideshow images={game.photoUrls} />
+                <GamePhotosEditor game={game} />
               </li>
             ))}
           </ul>

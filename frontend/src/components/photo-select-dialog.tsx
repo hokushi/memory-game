@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Game } from "@/lib/actions/game";
 import { createPhotoUploadUrls, savePhotos } from "@/lib/actions/photo";
@@ -16,6 +17,7 @@ type Selected = {
 };
 
 export function PhotoSelectDialog({ game, onClose }: Props) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   // 選択した写真のリスト
   const [photos, setPhotos] = useState<Selected[]>([]);
@@ -83,6 +85,8 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
       }
 
       toast.success(`${photos.length}枚を保存しました`);
+      // 一覧に新しい写真を反映させる
+      router.refresh();
       onClose();
     } catch {
       toast.error("写真のアップロードに失敗しました");
