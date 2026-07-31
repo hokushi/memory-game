@@ -53,4 +53,20 @@ export const games = pgTable(
   (table) => [check("games_size_check", sql`${table.size} in (4, 6, 8)`)],
 );
 
+// game_photos: ゲームで使う写真（S3 に上げた実体への参照）
+// 画像バイナリは S3 に置き、DB には S3 のオブジェクトキーだけを持つ。
+// 並び順が要るときは id（採番順＝挿入順）で代用する。
+export const gamePhotos = pgTable("game_photos", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+  // 所属ゲーム。ゲーム削除時は写真レコードも削除（S3 実体の削除は別途）。
+  gameId: bigint("game_id", { mode: "number" })
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }),
+  // S3 のオブジェクトキー。例: games/123/<uuid>
+  s3Key: text("s3_key").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // 今後のテーブル（例: scores）もこのファイルに追記していく

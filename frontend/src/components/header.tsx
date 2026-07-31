@@ -16,7 +16,7 @@ export async function Header() {
   const account = me?.account ?? null;
 
   return (
-    <header className="flex items-center justify-between border-b border-black/10 px-6 py-3 dark:border-white/10">
+    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-black/10 bg-background px-6 py-3 dark:border-white/10">
       <Link href="/" className="text-sm font-semibold">
         Memory Game
       </Link>

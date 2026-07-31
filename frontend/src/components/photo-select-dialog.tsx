@@ -1,7 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { Game } from "@/lib/actions/game";
+import { createPhotoUploadUrls, savePhotos } from "@/lib/actions/photo";
 
 type Props = {
   game: Game;
@@ -14,9 +17,12 @@ type Selected = {
 };
 
 export function PhotoSelectDialog({ game, onClose }: Props) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   // 選択した写真のリスト
   const [photos, setPhotos] = useState<Selected[]>([]);
+  // アップロード中フラグ（二重送信防止 & ボタンの状態表示）
+  const [isUploading, setIsUploading] = useState(false);
 
   // 神経衰弱なのでカードはペア。size×size 枚のカード = (size*size)/2 種類の写真が要る。
   const requiredCount = (game.size * game.size) / 2;
@@ -36,6 +42,57 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
     setPhotos((prev) => [...prev, ...picked]);
     // 同じファイルを選び直せるように value をリセット
     e.target.value = "";
+  };
+
+  const handleConfirm = async () => {
+    if (isUploading) return;
+    setIsUploading(true);
+
+    // 署名時とアップロード時で Content-Type を一致させる必要があるので、
+    // ここで一度だけ確定させて両方で使い回す。
+    const contentTypes = photos.map(
+      (p) => p.file.type || "application/octet-stream",
+    );
+
+    try {
+      // 1. backend から署名付きアップロード URL を取得
+      const presign = await createPhotoUploadUrls(game.id, contentTypes);
+      if (!presign.ok) {
+        toast.error(presign.error);
+        return;
+      }
+
+      // 2. 各ファイルを S3 に直接 PUT（バイナリは backend を経由しない）
+      await Promise.all(
+        presign.uploads.map(async (upload, i) => {
+          const res = await fetch(upload.url, {
+            method: "PUT",
+            headers: { "Content-Type": contentTypes[i] },
+            body: photos[i].file,
+          });
+          if (!res.ok) {
+            throw new Error(`S3 へのアップロードに失敗しました (${res.status})`);
+          }
+        }),
+      );
+
+      // 3. アップロード済みのキーを backend に保存
+      const keys = presign.uploads.map((u) => u.key);
+      const saved = await savePhotos(game.id, keys);
+      if (!saved.ok) {
+        toast.error(saved.error);
+        return;
+      }
+
+      toast.success(`${photos.length}枚を保存しました`);
+      // 一覧に新しい写真を反映させる
+      router.refresh();
+      onClose();
+    } catch {
+      toast.error("写真のアップロードに失敗しました");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -94,7 +151,7 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
           )}
         </div>
 
-        {/* フッター: 一番下に小さい「写真選択」ボタン */}
+        {/* フッター: 左に枚数、右に「写真選択」「写真確定」 */}
         <div className="flex items-center justify-between">
           <span className="text-xs">
             <span className="text-black/60 dark:text-white/60">
@@ -106,22 +163,34 @@ export function PhotoSelectDialog({ game, onClose }: Props) {
               </span>
             )}
           </span>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handlePick}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={isFull}
-            className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            写真選択
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePick}
+              className="hidden"
+            />
+            {/* 写真選択: セカンダリ（枠線）。何度も押して追加する */}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={isFull}
+              className="rounded-full border border-black/15 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-black/[.04] disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/[.06]"
+            >
+              写真選択
+            </button>
+            {/* 写真確定: プライマリ（塗り）。必要枚数が揃うまで無効 */}
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={!isFull || isUploading}
+              className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isUploading ? "アップロード中…" : "写真確定"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

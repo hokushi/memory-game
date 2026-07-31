@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { games } from "../db/schema.js";
 
@@ -40,5 +40,30 @@ export const gameRepository = {
       .from(games)
       .where(eq(games.accountId, accountId))
       .orderBy(desc(games.createdAt));
+  },
+
+  // 所有者チェック用に id と accountId を取得する（存在しなければ undefined）
+  async findOwnership(
+    id: number,
+  ): Promise<{ id: number; accountId: number } | undefined> {
+    const [row] = await db
+      .select({ id: games.id, accountId: games.accountId })
+      .from(games)
+      .where(eq(games.id, id))
+      .limit(1);
+    return row;
+  },
+
+  // 指定アカウントが所有する1件のゲームを取得する（無ければ undefined）
+  async findByIdAndAccount(
+    id: number,
+    accountId: number,
+  ): Promise<Game | undefined> {
+    const [game] = await db
+      .select(gameColumns)
+      .from(games)
+      .where(and(eq(games.id, id), eq(games.accountId, accountId)))
+      .limit(1);
+    return game;
   },
 };

@@ -11,6 +11,11 @@ export const env = {
   NODE_ENV: requireEnv("NODE_ENV"),
   // 本番(NODE_ENV=production)のときだけ CORS で使う。未設定なら undefined。
   CORS_ORIGIN: process.env.CORS_ORIGIN,
+  // 写真アップロード先の S3。リージョンとバケット名は必須。
+  // 認証情報(アクセスキー / ECS タスクロール等)は AWS SDK の標準の
+  // クレデンシャルチェーンが自動で解決するため、ここでは扱わない。
+  AWS_REGION: requireEnv("AWS_REGION"),
+  S3_BUCKET: requireEnv("S3_BUCKET"),
 } as const;
 
 export const isProd = env.NODE_ENV === "production";

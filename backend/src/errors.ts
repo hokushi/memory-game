@@ -25,3 +25,12 @@ export class UnauthenticatedError extends Error {
     this.name = "UnauthenticatedError";
   }
 }
+
+// ゲームが存在しない、またはログイン中アカウントの所有でない。
+// 「他人のゲームの有無」を漏らさないため、未所有も未存在と同じ扱いにする。
+export class GameNotFoundError extends Error {
+  constructor(message = "ゲームが見つかりません") {
+    super(message);
+    this.name = "GameNotFoundError";
+  }
+}

@@ -1,16 +1,17 @@
+import Link from "next/link";
 import { serverGet } from "@/lib/server-api";
 import { CreateGameDialog } from "@/components/create-game-dialog";
 import { GameImageSlideshow } from "@/components/game-image-slideshow";
+import { GamePhotosEditor } from "@/components/game-photos-editor";
 
 type Game = {
   id: number;
   name: string;
   size: number;
   createdAt: string;
+  // S3 の写真の表示用URL（署名付きGET）。未アップロードなら空配列。
+  photoUrls: string[];
 };
-
-// TODO: 本来は S3 の画像URL配列をゲームごとに API から受け取る。今はモック。
-const MOCK_IMAGES = ["/mock-1.webp", "/mock-2.jpeg", "/mock-3.jpeg"];
 
 export default async function Home() {
   // 未ログインのガードは middleware が担当（ここはログイン済み前提）
@@ -44,7 +45,17 @@ export default async function Home() {
                     {game.size}×{game.size}
                   </span>
                 </div>
-                <GameImageSlideshow images={MOCK_IMAGES} />
+                <GameImageSlideshow images={game.photoUrls} />
+                {game.photoUrls.length >= (game.size * game.size) / 2 ? (
+                  <Link
+                    href={`/games/${game.id}/play`}
+                    className="self-start rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90"
+                  >
+                    プレイ
+                  </Link>
+                ) : (
+                  <GamePhotosEditor game={game} />
+                )}
               </li>
             ))}
           </ul>
