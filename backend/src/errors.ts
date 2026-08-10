@@ -18,6 +18,53 @@ export class InvalidCredentialsError extends Error {
   }
 }
 
+// Cognito のパスワードポリシー違反。
+// 文字種などの条件は Cognito 側（ユーザープール）で決まっているため、
+// フロントの入力チェックだけでは弾ききれない。
+export class PasswordPolicyError extends Error {
+  constructor(
+    message = "パスワードが要件を満たしていません（8文字以上で、大文字・小文字・数字・記号を含めてください）",
+  ) {
+    super(message);
+    this.name = "PasswordPolicyError";
+  }
+}
+
+// 確認コードの入力が済んでいないアカウントでログインしようとした。
+// 認証情報自体は正しいので、InvalidCredentialsError とは分けて案内する。
+export class UserNotConfirmedError extends Error {
+  constructor(
+    message = "メールアドレスの確認が完了していません。確認コードを入力してください",
+  ) {
+    super(message);
+    this.name = "UserNotConfirmedError";
+  }
+}
+
+// 確認コードが違う。
+export class InvalidConfirmationCodeError extends Error {
+  constructor(message = "確認コードが違います") {
+    super(message);
+    this.name = "InvalidConfirmationCodeError";
+  }
+}
+
+// 確認コードの有効期限切れ。再送が必要。
+export class ExpiredConfirmationCodeError extends Error {
+  constructor(message = "確認コードの有効期限が切れています。再送してください") {
+    super(message);
+    this.name = "ExpiredConfirmationCodeError";
+  }
+}
+
+// 既に確認済みのアカウントに対して確認を実行した。
+export class AlreadyConfirmedError extends Error {
+  constructor(message = "このアカウントは既に確認済みです") {
+    super(message);
+    this.name = "AlreadyConfirmedError";
+  }
+}
+
 // 未認証（トークンが無い・無効・アカウント不在）。
 export class UnauthenticatedError extends Error {
   constructor(message = "認証が必要です") {

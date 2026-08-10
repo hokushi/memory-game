@@ -28,11 +28,27 @@ const loginBodySchema = {
   },
 } as const;
 
+// 確認コードは Cognito が発行する 6 桁の数字。
+const confirmBodySchema = {
+  type: "object",
+  required: ["email", "code"],
+  additionalProperties: false,
+  properties: {
+    email: { type: "string", pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
+    code: { type: "string", pattern: "^[0-9]{6}$" },
+  },
+} as const;
+
 export async function authRoutes(app: FastifyInstance) {
   app.post(
     "/auth/signup",
     { schema: { body: signupBodySchema } },
     authController.signup,
+  );
+  app.post(
+    "/auth/confirm",
+    { schema: { body: confirmBodySchema } },
+    authController.confirmSignup,
   );
 
   app.post(

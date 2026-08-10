@@ -1,9 +1,20 @@
-import bcrypt from "bcryptjs";
 import {
   accountRepository,
   type AccountSummary,
 } from "../infrastructure/repositories/account.js";
-import { EmailAlreadyExistsError, InvalidCredentialsError } from "../errors.js";
+import {
+  cognitoClient,
+  type LoginTokens,
+} from "../infrastructure/cognito/index.js";
+import {
+  AlreadyConfirmedError,
+  EmailAlreadyExistsError,
+  ExpiredConfirmationCodeError,
+  InvalidConfirmationCodeError,
+  InvalidCredentialsError,
+  PasswordPolicyError,
+  UserNotConfirmedError,
+} from "../errors.js";
 
 export type SignupInput = {
   name: string;
@@ -11,47 +22,145 @@ export type SignupInput = {
   password: string;
 };
 
+export type ConfirmSignupInput = {
+  email: string;
+  code: string;
+};
+
 export type LoginInput = {
   email: string;
   password: string;
 };
 
+export type LoginResult = {
+  account: AccountSummary;
+  tokens: LoginTokens;
+};
+
+export type SignupResult = {
+  account: AccountSummary;
+  confirmationRequired: boolean;
+};
+
+/** AWS SDK のエラーは name に例外名が入る（例: UsernameExistsException）。 */
+function cognitoErrorName(err: unknown): string | undefined {
+  return err instanceof Error ? err.name : undefined;
+}
+
 export const authService = {
-  async signup(input: SignupInput): Promise<AccountSummary> {
+  /**
+   * アカウントを作成する。
+   *
+   * Cognito と DB の 2 箇所に書き込むため、必ず Cognito を先にする。
+   * 逆順だと「DB にはいるが Cognito にいない = 永久にログインできない幽霊
+   * アカウント」ができてしまい、そちらの方が復旧しづらい。
+   */
+  async signup(input: SignupInput): Promise<SignupResult> {
     // 業務ルール: 同じメールアドレスは登録できない。
-    // まず明示的に存在チェックする（重複なら分かりやすくエラー）。
+    // Cognito 側でも弾かれるが、先に見ておくと分かりやすいエラーを返せる。
     const existing = await accountRepository.findByEmail(input.email);
     if (existing) {
       throw new EmailAlreadyExistsError();
     }
 
-    // パスワードは平文で保存しない。bcrypt でハッシュ化する。
-    const passwordHash = await bcrypt.hash(input.password, 10);
+    // Cognito にユーザーを作る（同時に確認コードのメールが飛ぶ）
+    let signUpResult;
+    try {
+      signUpResult = await cognitoClient.signUp(input.email, input.password);
+    } catch (err) {
+      switch (cognitoErrorName(err)) {
+        case "UsernameExistsException":
+          throw new EmailAlreadyExistsError();
+        case "InvalidPasswordException":
+          throw new PasswordPolicyError();
+        default:
+          throw err;
+      }
+    }
 
-    return accountRepository.create({
-      name: input.name,
-      email: input.email,
-      passwordHash,
-    });
+    // DB にアプリ側のデータを保存する
+    try {
+      const account = await accountRepository.create({
+        name: input.name,
+        email: input.email,
+        cognitoSub: signUpResult.sub,
+      });
+
+      return {
+        account,
+        confirmationRequired: !signUpResult.confirmed,
+      };
+    } catch (err) {
+      // DB が失敗したら Cognito 側を消して巻き戻す。
+      // 巻き戻しにも失敗した場合は、元のエラーを潰さないよう握って進む
+      try {
+        await cognitoClient.deleteUser(input.email);
+      } catch (rollbackErr) {
+        console.error(
+          `[signup] Cognito の巻き戻しに失敗しました。手動で削除してください: ${input.email}`,
+          rollbackErr,
+        );
+      }
+      throw err;
+    }
   },
 
-  async login(input: LoginInput): Promise<AccountSummary> {
-    const account = await accountRepository.findByEmailWithPassword(
-      input.email,
-    );
+  /**
+   * メールに届いた確認コードを検証して本登録にする。
+   * DB 側は signup の時点で保存済みなので、ここで触るものは無い
+   * （確認済みかどうかは Cognito が持っているため、二重に持たない）。
+   */
+  async confirmSignup(input: ConfirmSignupInput): Promise<void> {
+    try {
+      await cognitoClient.confirmSignUp(input.email, input.code);
+    } catch (err) {
+      switch (cognitoErrorName(err)) {
+        case "CodeMismatchException":
+          throw new InvalidConfirmationCodeError();
+        case "ExpiredCodeException":
+          throw new ExpiredConfirmationCodeError();
+        case "NotAuthorizedException":
+          throw new AlreadyConfirmedError();
+        default:
+          throw err;
+      }
+    }
+  },
 
-    // メール不在・パスワード不一致は同じエラーにする
+  /**
+   * ログインする。
+   *
+   * パスワードの照合は Cognito だけが行い、DB は sub で
+   * 表示名などを引くためにしか使わない（照合はしない）。
+   */
+  async login(input: LoginInput): Promise<LoginResult> {
+    let sub: string;
+    let tokens: LoginTokens;
+    try {
+      ({ sub, tokens } = await cognitoClient.login(
+        input.email,
+        input.password,
+      ));
+    } catch (err) {
+      switch (cognitoErrorName(err)) {
+        case "NotAuthorizedException":
+        case "UserNotFoundException":
+          throw new InvalidCredentialsError();
+        case "UserNotConfirmedException":
+          throw new UserNotConfirmedError();
+        default:
+          throw err;
+      }
+    }
+
+    const account = await accountRepository.findByCognitoSub(sub);
     if (!account) {
+      console.error(
+        `[login] Cognito に存在するが DB に無いアカウントです: sub=${sub}`,
+      );
       throw new InvalidCredentialsError();
     }
 
-    const ok = await bcrypt.compare(input.password, account.passwordHash);
-    if (!ok) {
-      throw new InvalidCredentialsError();
-    }
-
-    // パスワードハッシュは返さない
-    const { passwordHash: _passwordHash, ...summary } = account;
-    return summary;
+    return { account, tokens };
   },
 };
