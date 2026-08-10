@@ -32,7 +32,6 @@ services:
       HOST: 0.0.0.0
       # コンテナ内からは localhost ではなく db サービス名で繋ぐ
       DATABASE_URL: postgres://postgres:postgres@db:5432/memory_game
-      JWT_SECRET: dev-secret-change-me
       # 写真アップロード用 S3。バケットは各自のものに合わせて変更する。
       AWS_REGION: ap-northeast-1
       S3_BUCKET: hokushi-memory-game-884375106358-ap-northeast-1-an

@@ -30,6 +30,17 @@ export class PasswordPolicyError extends Error {
   }
 }
 
+// 確認コードの入力が済んでいないアカウントでログインしようとした。
+// 認証情報自体は正しいので、InvalidCredentialsError とは分けて案内する。
+export class UserNotConfirmedError extends Error {
+  constructor(
+    message = "メールアドレスの確認が完了していません。確認コードを入力してください",
+  ) {
+    super(message);
+    this.name = "UserNotConfirmedError";
+  }
+}
+
 // 確認コードが違う。
 export class InvalidConfirmationCodeError extends Error {
   constructor(message = "確認コードが違います") {

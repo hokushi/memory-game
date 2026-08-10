@@ -1,9 +1,12 @@
-import "@fastify/jwt";
+import "fastify";
+// reply.setCookie / request.cookies の型はこのプラグインが足している。
+// app.ts の import に依存させず、ここで明示的に読み込んでおく。
+import "@fastify/cookie";
 
-// JWT のペイロード型（アクセストークンには account.id を入れる）
-declare module "@fastify/jwt" {
-  interface FastifyJWT {
-    payload: { accountId: number };
+// authenticate ミドルウェアが載せる値の型。
+// 認証そのものは Cognito が行い、ここにはアプリ側の accountId だけを持つ。
+declare module "fastify" {
+  interface FastifyRequest {
     user: { accountId: number };
   }
 }

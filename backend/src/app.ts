@@ -1,7 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
-import jwt from "@fastify/jwt";
 import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/account.js";
 import { gameRoutes } from "./routes/game.js";
@@ -29,13 +28,10 @@ export function buildApp(): FastifyInstance {
     credentials: true,
   });
 
+  // トークンは Cognito が発行したものをそのまま使うため、
+  // 自前で署名する仕組み（@fastify/jwt）は持たない。
+  // Cookie から読み出すためのプラグインだけ入れる。
   app.register(cookie);
-  app.register(jwt, {
-    secret: env.JWT_SECRET,
-    // アクセストークンは httpOnly Cookie から読む
-    cookie: { cookieName: "access_token", signed: false },
-    sign: { expiresIn: "7d" },
-  });
 
   // --- 公開ルート（認証不要） ---
   app.get("/", async () => {

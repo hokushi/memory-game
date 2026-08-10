@@ -5,7 +5,6 @@ import { requireEnv } from "./loadEnv.js";
 // フォールバックはせず、未設定なら起動時にエラーで落とす。
 export const env = {
   DATABASE_URL: requireEnv("DATABASE_URL"),
-  JWT_SECRET: requireEnv("JWT_SECRET"),
   PORT: Number(requireEnv("PORT")),
   HOST: requireEnv("HOST"),
   NODE_ENV: requireEnv("NODE_ENV"),

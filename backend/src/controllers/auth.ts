@@ -2,6 +2,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   authService,
   type ConfirmSignupInput,
+  type LoginInput,
   type SignupInput,
 } from "../services/auth.js";
 import {
@@ -9,8 +10,11 @@ import {
   EmailAlreadyExistsError,
   ExpiredConfirmationCodeError,
   InvalidConfirmationCodeError,
+  InvalidCredentialsError,
   PasswordPolicyError,
+  UserNotConfirmedError,
 } from "../errors.js";
+import { isProd } from "../config/env.js";
 
 export const authController = {
   async signup(request: FastifyRequest, reply: FastifyReply) {
@@ -54,12 +58,31 @@ export const authController = {
     }
   },
 
-  // TODO: Cognito でのログインは未実装。
-  // InitiateAuth を使う予定だが、アプリクライアントに
-  // ALLOW_USER_PASSWORD_AUTH を追加してから着手する。
-  async login(_request: FastifyRequest, reply: FastifyReply) {
-    return reply
-      .code(501)
-      .send({ error: "ログインは Cognito 移行中のため未実装です" });
+  async login(request: FastifyRequest, reply: FastifyReply) {
+    const body = request.body as LoginInput;
+
+    try {
+      const { account, tokens } = await authService.login(body);
+
+      // Cognito が発行したアクセストークンをそのまま持たせる。
+      // 自前で署名し直さないので、失効の管理も Cognito 側に寄る。
+      reply.setCookie("access_token", tokens.accessToken, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProd,
+        maxAge: tokens.expiresIn,
+      });
+
+      return reply.code(200).send({ account });
+    } catch (err) {
+      if (err instanceof InvalidCredentialsError) {
+        return reply.code(401).send({ error: err.message });
+      }
+      if (err instanceof UserNotConfirmedError) {
+        return reply.code(403).send({ error: err.message });
+      }
+      throw err;
+    }
   },
 };

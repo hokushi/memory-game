@@ -2,13 +2,18 @@ import {
   accountRepository,
   type AccountSummary,
 } from "../infrastructure/repositories/account.js";
-import { cognitoClient } from "../infrastructure/cognito/index.js";
+import {
+  cognitoClient,
+  type LoginTokens,
+} from "../infrastructure/cognito/index.js";
 import {
   AlreadyConfirmedError,
   EmailAlreadyExistsError,
   ExpiredConfirmationCodeError,
   InvalidConfirmationCodeError,
+  InvalidCredentialsError,
   PasswordPolicyError,
+  UserNotConfirmedError,
 } from "../errors.js";
 
 export type SignupInput = {
@@ -20,6 +25,16 @@ export type SignupInput = {
 export type ConfirmSignupInput = {
   email: string;
   code: string;
+};
+
+export type LoginInput = {
+  email: string;
+  password: string;
+};
+
+export type LoginResult = {
+  account: AccountSummary;
+  tokens: LoginTokens;
 };
 
 export type SignupResult = {
@@ -110,5 +125,42 @@ export const authService = {
           throw err;
       }
     }
+  },
+
+  /**
+   * ログインする。
+   *
+   * パスワードの照合は Cognito だけが行い、DB は sub で
+   * 表示名などを引くためにしか使わない（照合はしない）。
+   */
+  async login(input: LoginInput): Promise<LoginResult> {
+    let sub: string;
+    let tokens: LoginTokens;
+    try {
+      ({ sub, tokens } = await cognitoClient.login(
+        input.email,
+        input.password,
+      ));
+    } catch (err) {
+      switch (cognitoErrorName(err)) {
+        case "NotAuthorizedException":
+        case "UserNotFoundException":
+          throw new InvalidCredentialsError();
+        case "UserNotConfirmedException":
+          throw new UserNotConfirmedError();
+        default:
+          throw err;
+      }
+    }
+
+    const account = await accountRepository.findByCognitoSub(sub);
+    if (!account) {
+      console.error(
+        `[login] Cognito に存在するが DB に無いアカウントです: sub=${sub}`,
+      );
+      throw new InvalidCredentialsError();
+    }
+
+    return { account, tokens };
   },
 };
