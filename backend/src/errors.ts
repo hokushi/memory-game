@@ -18,6 +18,18 @@ export class InvalidCredentialsError extends Error {
   }
 }
 
+// Cognito のパスワードポリシー違反。
+// 文字種などの条件は Cognito 側（ユーザープール）で決まっているため、
+// フロントの入力チェックだけでは弾ききれない。
+export class PasswordPolicyError extends Error {
+  constructor(
+    message = "パスワードが要件を満たしていません（8文字以上で、大文字・小文字・数字・記号を含めてください）",
+  ) {
+    super(message);
+    this.name = "PasswordPolicyError";
+  }
+}
+
 // 未認証（トークンが無い・無効・アカウント不在）。
 export class UnauthenticatedError extends Error {
   constructor(message = "認証が必要です") {

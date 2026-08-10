@@ -16,6 +16,10 @@ export const env = {
   // クレデンシャルチェーンが自動で解決するため、ここでは扱わない。
   AWS_REGION: requireEnv("AWS_REGION"),
   S3_BUCKET: requireEnv("S3_BUCKET"),
+  // Cognito（ユーザーとパスワードの置き場）。
+  // どちらも秘密の値ではないが、環境ごとに変わるのでコードに直書きしない。
+  COGNITO_USER_POOL_ID: requireEnv("COGNITO_USER_POOL_ID"),
+  COGNITO_CLIENT_ID: requireEnv("COGNITO_CLIENT_ID"),
 } as const;
 
 export const isProd = env.NODE_ENV === "production";

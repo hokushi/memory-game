@@ -15,12 +15,16 @@ import {
 // ============================================================
 
 // accounts: ユーザーアカウント
-// パスワードは平文では保存せず、ハッシュ化した値を passwordHash に入れる。
+// パスワードはこのテーブルに持たない。認証情報の正解は Cognito 側だけに置き、
+// ここは「アプリのデータ」と「Cognito のどのユーザーか（cognitoSub）」を持つ。
+// 両方にパスワードを持つと、再設定などで必ずズレて破綻する。
 export const accounts = pgTable("accounts", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  // Cognito がユーザーに振る一意な ID（UUID）。
+  // メールは変更されうるが sub は変わらないので、紐付けはこちらで行う。
+  cognitoSub: text("cognito_sub").notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

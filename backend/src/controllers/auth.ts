@@ -1,11 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import {
-  authService,
-  type LoginInput,
-  type SignupInput,
-} from "../services/auth.js";
-import { EmailAlreadyExistsError, InvalidCredentialsError } from "../errors.js";
-import { isProd } from "../config/env.js";
+import { authService, type SignupInput } from "../services/auth.js";
+import { EmailAlreadyExistsError, PasswordPolicyError } from "../errors.js";
 
 export const authController = {
   async signup(request: FastifyRequest, reply: FastifyReply) {
@@ -13,38 +8,28 @@ export const authController = {
     const body = request.body as SignupInput;
 
     try {
-      const account = await authService.signup(body);
-      return reply.code(201).send({ account });
+      const { account, confirmationRequired } = await authService.signup(body);
+
+      // この時点ではまだ未確認でログインできないため、トークンは発行しない。
+      // フロントは confirmationRequired を見て確認コード入力画面へ進む。
+      return reply.code(201).send({ account, confirmationRequired });
     } catch (err) {
       if (err instanceof EmailAlreadyExistsError) {
         return reply.code(409).send({ error: err.message });
+      }
+      if (err instanceof PasswordPolicyError) {
+        return reply.code(400).send({ error: err.message });
       }
       throw err;
     }
   },
 
-  async login(request: FastifyRequest, reply: FastifyReply) {
-    const body = request.body as LoginInput;
-
-    try {
-      const account = await authService.login(body);
-
-      // account.id を入れたアクセストークンを発行し、httpOnly Cookie で渡す。
-      const token = await reply.jwtSign({ accountId: account.id });
-      reply.setCookie("access_token", token, {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: isProd,
-        maxAge: 60 * 60 * 24 * 7, // 7日（トークンの有効期限に合わせる）
-      });
-
-      return reply.code(200).send({ account });
-    } catch (err) {
-      if (err instanceof InvalidCredentialsError) {
-        return reply.code(401).send({ error: err.message });
-      }
-      throw err;
-    }
+  // TODO: Cognito でのログインは未実装。
+  // InitiateAuth を使う予定だが、アプリクライアントに
+  // ALLOW_USER_PASSWORD_AUTH を追加してから着手する。
+  async login(_request: FastifyRequest, reply: FastifyReply) {
+    return reply
+      .code(501)
+      .send({ error: "ログインは Cognito 移行中のため未実装です" });
   },
 };
