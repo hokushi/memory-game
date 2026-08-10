@@ -35,6 +35,8 @@ services:
       # 写真アップロード用 S3。バケットは各自のものに合わせて変更する。
       AWS_REGION: ap-northeast-1
       S3_BUCKET: hokushi-memory-game-884375106358-ap-northeast-1-an
+      # 通知メールの送信元。SES で検証済みのアドレスにすること。
+      SES_FROM_ADDRESS: ${SES_FROM_ADDRESS:-}
       # Cognito（ユーザーとパスワードの置き場）。
       # 秘密の値ではない（これだけでは何もできない）ので直書きしてよい。
       COGNITO_USER_POOL_ID: ap-northeast-1_1rUvjxHYD
