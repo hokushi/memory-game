@@ -3,12 +3,23 @@ import {
   type AccountSummary,
 } from "../infrastructure/repositories/account.js";
 import { cognitoClient } from "../infrastructure/cognito/index.js";
-import { EmailAlreadyExistsError, PasswordPolicyError } from "../errors.js";
+import {
+  AlreadyConfirmedError,
+  EmailAlreadyExistsError,
+  ExpiredConfirmationCodeError,
+  InvalidConfirmationCodeError,
+  PasswordPolicyError,
+} from "../errors.js";
 
 export type SignupInput = {
   name: string;
   email: string;
   password: string;
+};
+
+export type ConfirmSignupInput = {
+  email: string;
+  code: string;
 };
 
 export type SignupResult = {
@@ -76,6 +87,28 @@ export const authService = {
         );
       }
       throw err;
+    }
+  },
+
+  /**
+   * メールに届いた確認コードを検証して本登録にする。
+   * DB 側は signup の時点で保存済みなので、ここで触るものは無い
+   * （確認済みかどうかは Cognito が持っているため、二重に持たない）。
+   */
+  async confirmSignup(input: ConfirmSignupInput): Promise<void> {
+    try {
+      await cognitoClient.confirmSignUp(input.email, input.code);
+    } catch (err) {
+      switch (cognitoErrorName(err)) {
+        case "CodeMismatchException":
+          throw new InvalidConfirmationCodeError();
+        case "ExpiredCodeException":
+          throw new ExpiredConfirmationCodeError();
+        case "NotAuthorizedException":
+          throw new AlreadyConfirmedError();
+        default:
+          throw err;
+      }
     }
   },
 };

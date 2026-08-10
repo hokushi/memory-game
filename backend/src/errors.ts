@@ -30,6 +30,30 @@ export class PasswordPolicyError extends Error {
   }
 }
 
+// 確認コードが違う。
+export class InvalidConfirmationCodeError extends Error {
+  constructor(message = "確認コードが違います") {
+    super(message);
+    this.name = "InvalidConfirmationCodeError";
+  }
+}
+
+// 確認コードの有効期限切れ。再送が必要。
+export class ExpiredConfirmationCodeError extends Error {
+  constructor(message = "確認コードの有効期限が切れています。再送してください") {
+    super(message);
+    this.name = "ExpiredConfirmationCodeError";
+  }
+}
+
+// 既に確認済みのアカウントに対して確認を実行した。
+export class AlreadyConfirmedError extends Error {
+  constructor(message = "このアカウントは既に確認済みです") {
+    super(message);
+    this.name = "AlreadyConfirmedError";
+  }
+}
+
 // 未認証（トークンが無い・無効・アカウント不在）。
 export class UnauthenticatedError extends Error {
   constructor(message = "認証が必要です") {

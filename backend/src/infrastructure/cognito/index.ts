@@ -1,6 +1,7 @@
 import {
   AdminDeleteUserCommand,
   CognitoIdentityProviderClient,
+  ConfirmSignUpCommand,
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { env } from "../../config/env.js";
@@ -46,6 +47,20 @@ export const cognitoClient = {
       sub: result.UserSub,
       confirmed: result.UserConfirmed ?? false,
     };
+  },
+
+  /**
+   * メールに届いた確認コードを検証して本登録（CONFIRMED）にする。
+   * これを通すまでアカウントはログインに使えない。
+   */
+  async confirmSignUp(email: string, code: string): Promise<void> {
+    await cognito.send(
+      new ConfirmSignUpCommand({
+        ClientId: env.COGNITO_CLIENT_ID,
+        Username: email,
+        ConfirmationCode: code,
+      }),
+    );
   },
 
   /**

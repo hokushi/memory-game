@@ -1,6 +1,16 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { authService, type SignupInput } from "../services/auth.js";
-import { EmailAlreadyExistsError, PasswordPolicyError } from "../errors.js";
+import {
+  authService,
+  type ConfirmSignupInput,
+  type SignupInput,
+} from "../services/auth.js";
+import {
+  AlreadyConfirmedError,
+  EmailAlreadyExistsError,
+  ExpiredConfirmationCodeError,
+  InvalidConfirmationCodeError,
+  PasswordPolicyError,
+} from "../errors.js";
 
 export const authController = {
   async signup(request: FastifyRequest, reply: FastifyReply) {
@@ -19,6 +29,26 @@ export const authController = {
       }
       if (err instanceof PasswordPolicyError) {
         return reply.code(400).send({ error: err.message });
+      }
+      throw err;
+    }
+  },
+
+  async confirmSignup(request: FastifyRequest, reply: FastifyReply) {
+    const body = request.body as ConfirmSignupInput;
+
+    try {
+      await authService.confirmSignup(body);
+      return reply.code(204).send();
+    } catch (err) {
+      if (err instanceof InvalidConfirmationCodeError) {
+        return reply.code(400).send({ error: err.message });
+      }
+      if (err instanceof ExpiredConfirmationCodeError) {
+        return reply.code(410).send({ error: err.message });
+      }
+      if (err instanceof AlreadyConfirmedError) {
+        return reply.code(409).send({ error: err.message });
       }
       throw err;
     }

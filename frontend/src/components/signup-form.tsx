@@ -27,11 +27,23 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
+// 確認コードは Cognito が発行する 6 桁の数字。
+const confirmSchema = z.object({
+  code: z
+    .string()
+    .min(1, "確認コードを入力してください")
+    .regex(/^[0-9]{6}$/, "確認コードは6桁の数字です"),
+});
+
+type ConfirmFormValues = z.infer<typeof confirmSchema>;
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 export function SignupForm() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  // 確認コードの送信先。null でない = 作成が済み、確認待ちの状態。
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const {
     register,
@@ -65,16 +77,34 @@ export function SignupForm() {
           });
           return;
         }
+        if (res.status === 400) {
+          setError("password", {
+            message: data?.error ?? "パスワードが要件を満たしていません",
+          });
+          return;
+        }
         setServerError(data?.error ?? "登録に失敗しました");
         return;
       }
 
-      // 登録成功 → ログイン画面へ
+      const data = (await res.json()) as { confirmationRequired?: boolean };
+
+      // 確認コードの入力が必要なら、そのまま案内を出す。
+      // ここでログイン画面へ送っても、未確認のうちはログインできない。
+      if (data.confirmationRequired) {
+        setPendingEmail(values.email);
+        return;
+      }
+
       router.push("/login");
     } catch {
       setServerError("サーバーに接続できませんでした");
     }
   };
+
+  if (pendingEmail) {
+    return <ConfirmationNotice email={pendingEmail} />;
+  }
 
   return (
     <form
@@ -179,9 +209,137 @@ export function SignupForm() {
 
       <p className="text-center text-xs text-black/60 dark:text-white/60">
         すでにアカウントをお持ちの方は{" "}
-        <Link href="/login" className="font-medium underline underline-offset-2">
+        <Link
+          href="/login"
+          className="font-medium underline underline-offset-2"
+        >
           ログイン
         </Link>
+      </p>
+    </form>
+  );
+}
+
+// アカウント作成後、確認コードを入力してもらう画面。
+// この時点ではアカウントは未確認（UNCONFIRMED）で、まだログインできない。
+function ConfirmationNotice({ email }: { email: string }) {
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<ConfirmFormValues>({
+    resolver: zodResolver(confirmSchema),
+    defaultValues: { code: "" },
+  });
+
+  const onSubmit = async (values: ConfirmFormValues) => {
+    setServerError(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: values.code }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        // コード違い(400) と 期限切れ(410) はコード欄に出す
+        if (res.status === 400 || res.status === 410) {
+          setError("code", {
+            message: data?.error ?? "確認コードが正しくありません",
+          });
+          return;
+        }
+        // 既に確認済み(409) はエラーではなく完了として扱う
+        if (res.status === 409) {
+          setConfirmed(true);
+          return;
+        }
+        setServerError(data?.error ?? "確認に失敗しました");
+        return;
+      }
+
+      setConfirmed(true);
+    } catch {
+      setServerError("サーバーに接続できませんでした");
+    }
+  };
+
+  if (confirmed) {
+    return (
+      <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-black/10 bg-white/80 p-6 text-left shadow-xl ring-1 ring-black/5 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5 sm:p-8">
+        <h2 className="text-lg font-semibold">登録が完了しました</h2>
+        <p className="text-sm text-black/70 dark:text-white/70">
+          アカウントが有効になりました。ログインしてゲームを始めましょう。
+        </p>
+        <Link
+          href="/login"
+          className="rounded-full bg-foreground px-6 py-3 text-center text-sm font-medium text-background transition-opacity hover:opacity-90"
+        >
+          ログインへ
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+      className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-black/10 bg-white/80 p-6 text-left shadow-xl ring-1 ring-black/5 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5 sm:p-8"
+    >
+      <h2 className="text-lg font-semibold">確認コードを入力</h2>
+
+      <p className="text-sm text-black/70 dark:text-white/70">
+        <span className="font-medium break-all">{email}</span>{" "}
+        宛に6桁の確認コードを送りました。
+      </p>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="code" className="text-sm font-medium">
+          確認コード
+        </label>
+        <input
+          id="code"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          placeholder="123456"
+          aria-invalid={!!errors.code}
+          {...register("code")}
+          className="rounded-lg border border-black/15 bg-transparent px-3 py-2 text-center text-lg tracking-[0.4em] outline-none focus:border-foreground dark:border-white/20"
+        />
+        {errors.code && (
+          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+            {errors.code.message}
+          </p>
+        )}
+      </div>
+
+      {serverError && (
+        <p
+          role="alert"
+          className="text-center text-xs text-red-600 dark:text-red-400"
+        >
+          {serverError}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        {isSubmitting ? "確認中…" : "登録を完了する"}
+      </button>
+
+      <p className="text-xs text-black/60 dark:text-white/60">
+        コードを入力するまでアカウントは有効になりません。メールが見つからない場合は迷惑メールフォルダもご確認ください。
       </p>
     </form>
   );
