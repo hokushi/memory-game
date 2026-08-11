@@ -1,8 +1,12 @@
+import { importPKCS8, SignJWT } from "jose";
 import { env } from "../../config/env.js";
 
 // 別アプリ（external-api）へイベントを送るクライアント。
 // 相手はこのリポジトリ内の別ワークスペースだが、DB も別・プロセスも別の
-// 「外部サービス」として扱う。やり取りは HTTP + APIキーだけ。
+// 「外部サービス」として扱う。やり取りは HTTP と署名だけ。
+//
+// 認証は公開鍵方式。こちらが秘密鍵で JWT に署名し、相手は登録済みの公開鍵で
+// 検証する。鍵そのものはネットワークに流れない。
 
 export type GameCreatedEvent = {
   gameId: number;
@@ -17,6 +21,31 @@ export type GameCreatedEvent = {
 // そのままこちらの障害になる）。
 const TIMEOUT_MS = 3000;
 
+// 署名方式。相手が受け入れる方式と一致させる。
+const ALGORITHM = "EdDSA";
+
+// トークンの宛先。相手が名乗っている名前を入れる。
+// これを見て相手は「自分宛のトークンか」を確かめる。
+const AUDIENCE = "external-api";
+
+// トークンの有効期限。毎回その場で作るので短くてよい。
+// 万一漏れても使える時間がこれだけに限られる。
+const EXPIRES_IN = "5m";
+
+// PEM から鍵オブジェクトへの変換は毎回やる必要がないので、最初の 1 回だけ行う。
+const privateKeyPromise = importPKCS8(env.EXTERNAL_API_PRIVATE_KEY, ALGORITHM);
+
+/** 送信のたびに使い捨ての通行証（JWT）を作る。保存はしない。 */
+async function createToken(): Promise<string> {
+  return new SignJWT({})
+    .setProtectedHeader({ alg: ALGORITHM })
+    .setIssuer(env.EXTERNAL_API_CLIENT_ID)
+    .setAudience(AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(EXPIRES_IN)
+    .sign(await privateKeyPromise);
+}
+
 export const externalApiClient = {
   /**
    * ゲーム作成イベントを送る。
@@ -24,13 +53,15 @@ export const externalApiClient = {
    * 送信に失敗した場合は例外を投げる。握りつぶすかどうかは呼び出し側が決める。
    */
   async sendGameCreated(event: GameCreatedEvent): Promise<void> {
+    const token = await createToken();
+
     const response = await fetch(`${env.EXTERNAL_API_URL}/events`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        // 相手が要求している鍵。ユーザーのトークンとは別物で、
-        // 「どのアプリからの呼び出しか」を示す。
-        "x-api-key": env.EXTERNAL_API_KEY,
+        // 秘密鍵で署名した JWT。ユーザーのトークンとは別物で、
+        // 「どのシステムからの呼び出しか」を相手に示す。
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         type: "game.created",

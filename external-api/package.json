@@ -10,11 +10,13 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio --port 4984"
+    "db:studio": "drizzle-kit studio --port 4984",
+    "register-client": "tsx scripts/register-client.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.2.1",
+    "jose": "^6.2.8",
     "postgres": "^3.4.9"
   },
   "devDependencies": {

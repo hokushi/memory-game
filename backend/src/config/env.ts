@@ -24,8 +24,15 @@ export const env = {
   // イベント送信先の別アプリ（external-api）。
   // ローカルは http://localhost:3003、docker では http://external-api:3003。
   EXTERNAL_API_URL: requireEnv("EXTERNAL_API_URL"),
-  // 送信先が要求する APIキー。external-api 側の API_KEY と一致させる。
-  EXTERNAL_API_KEY: requireEnv("EXTERNAL_API_KEY"),
+  // 送信先に利用登録したときにもらった ID。署名する JWT の iss に入れる。
+  EXTERNAL_API_CLIENT_ID: requireEnv("EXTERNAL_API_CLIENT_ID"),
+  // 署名に使う秘密鍵（Ed25519 / PKCS#8 の PEM）。
+  // PEM は改行を含み .env に素で書けないので base64 で持ち、使う直前に戻す。
+  // 公開鍵と違いこれは本物の秘密なので、リポジトリには絶対に入れない。
+  EXTERNAL_API_PRIVATE_KEY: Buffer.from(
+    requireEnv("EXTERNAL_API_PRIVATE_KEY"),
+    "base64",
+  ).toString("utf8"),
 } as const;
 
 export const isProd = env.NODE_ENV === "production";

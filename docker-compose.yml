@@ -47,7 +47,10 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       # イベント送信先の別アプリ。コンテナ内からはサービス名で繋ぐ。
       EXTERNAL_API_URL: http://external-api:3003
-      EXTERNAL_API_KEY: ${EXTERNAL_API_KEY:-local-dev-key}
+      # 利用登録でもらった ID と、署名用の秘密鍵（base64）。
+      # 秘密鍵はここに直書きせず、git 管理外の .env から差し込む。
+      EXTERNAL_API_CLIENT_ID: ${EXTERNAL_API_CLIENT_ID:-}
+      EXTERNAL_API_PRIVATE_KEY: ${EXTERNAL_API_PRIVATE_KEY:-}
     ports:
       - "3002:3002"
     depends_on:
@@ -91,8 +94,7 @@ services:
       PORT: 3003
       HOST: 0.0.0.0
       DATABASE_URL: postgres://postgres:postgres@external-db:5432/external_api
-      # 呼び出し側（backend の EXTERNAL_API_KEY）と同じ値にする
-      API_KEY: ${EXTERNAL_API_KEY:-local-dev-key}
+      # 呼び出し元の認証は clients テーブルの公開鍵で行うので、共有の秘密は持たない
     ports:
       - "3003:3003"
     depends_on:
