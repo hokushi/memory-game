@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import "./types/fastify.js";
 import { eventRoutes } from "./routes/event.js";
-import { requireApiKey } from "./middleware/apiKey.js";
+import { verifyToken } from "./middleware/verifyToken.js";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -19,12 +20,12 @@ export function buildApp(): FastifyInstance {
     return { status: "ok" };
   });
 
-  // --- APIキー必須ルート ---
-  // このスコープ内に登録したルートは、すべて requireApiKey を通る。
+  // --- 認証必須ルート ---
+  // このスコープ内に登録したルートは、すべて verifyToken を通る。
   // onRequest（一番早いフック）で見る。preHandler だとボディの検証が先に走り、
-  // 鍵が無い相手にも「どんな項目が必要か」を 400 で教えてしまうため。
+  // 認証が通っていない相手にも「どんな項目が必要か」を 400 で教えてしまうため。
   app.register(async (protectedRoutes) => {
-    protectedRoutes.addHook("onRequest", requireApiKey);
+    protectedRoutes.addHook("onRequest", verifyToken);
 
     await protectedRoutes.register(eventRoutes);
   });

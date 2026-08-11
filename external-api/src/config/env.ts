@@ -7,6 +7,4 @@ export const env = {
   PORT: Number(requireEnv("PORT")),
   HOST: requireEnv("HOST"),
   NODE_ENV: requireEnv("NODE_ENV"),
-  // このAPIを叩くのに必要な鍵。呼び出し側（memory-game backend）と共有する。
-  API_KEY: requireEnv("API_KEY"),
 } as const;

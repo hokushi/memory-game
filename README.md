@@ -65,15 +65,20 @@ POST /games (backend :3002)
   ├─ games テーブルに保存
   ├─ SES で作成通知メール
   └─ POST http://localhost:3003/events   ← 外部API呼び出し
+       Authorization: Bearer <秘密鍵で署名した JWT>
        backend/src/infrastructure/externalApi/index.ts
        ▼
-   external-api (:3003) → events テーブル（別 DB）
+   external-api (:3003) → 公開鍵で検証 → events テーブル（別 DB）
 ```
 
-送信は付随的な処理なので、失敗してもゲーム作成は成功する（ログに残すだけ）。届いたイベントは次で確認できる。
+送信は付随的な処理なので、失敗してもゲーム作成は成功する（ログに残すだけ）。
+
+認証は**公開鍵方式**。backend が秘密鍵（`EXTERNAL_API_PRIVATE_KEY`）で署名し、external-api は `clients` テーブルに登録された公開鍵で検証する。共有の秘密（APIキー）は持たないので、external-api 側の DB が漏れてもなりすましはできない。鍵の作り方と登録手順は [external-api/README.md](external-api/README.md)。
+
+届いたイベントは DB で確認できる。
 
 ```bash
-curl -H 'x-api-key: local-dev-key' 'http://localhost:3003/events?limit=5'
+docker exec external-api-db psql -U postgres -d external_api -c 'select * from events;'
 ```
 
 ### 持たせる想定（叩き台）

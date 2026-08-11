@@ -15,6 +15,24 @@ import {
 // 送られてきた ID はただの数値として持つ。
 // ============================================================
 
+// clients: このAPIを使う「相手のシステム」と、その公開鍵
+//
+// 利用登録すると 1 行できる、というイメージのテーブル。
+// 公開鍵は秘密ではないので、そのまま列に持ってよい（秘密鍵は相手の手元にしかない）。
+// リクエストに付いてきた JWT の iss で行を引き、その public_key で署名を検証する。
+export const clients = pgTable("clients", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+  // 相手が名乗る ID。JWT の iss に入ってくる値。例: cli_8f3a...
+  clientId: text("client_id").notNull().unique(),
+  // 人が見て分かる名前。例: memory-game
+  name: text("name").notNull(),
+  // PEM 形式の公開鍵（-----BEGIN PUBLIC KEY----- で始まる文字列）
+  publicKey: text("public_key").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // events: 他サービスから送られてきたイベント
 export const events = pgTable(
   "events",
