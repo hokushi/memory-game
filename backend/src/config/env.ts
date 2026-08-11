@@ -21,6 +21,11 @@ export const env = {
   // どちらも秘密の値ではないが、環境ごとに変わるのでコードに直書きしない。
   COGNITO_USER_POOL_ID: requireEnv("COGNITO_USER_POOL_ID"),
   COGNITO_CLIENT_ID: requireEnv("COGNITO_CLIENT_ID"),
+  // イベント送信先の別アプリ（external-api）。
+  // ローカルは http://localhost:3003、docker では http://external-api:3003。
+  EXTERNAL_API_URL: requireEnv("EXTERNAL_API_URL"),
+  // 送信先が要求する APIキー。external-api 側の API_KEY と一致させる。
+  EXTERNAL_API_KEY: requireEnv("EXTERNAL_API_KEY"),
 } as const;
 
 export const isProd = env.NODE_ENV === "production";

@@ -10,6 +10,7 @@ monorepo（pnpm workspace）。
 
 - `frontend/` — Next.js（TypeScript / App Router / Tailwind CSS）
 - `backend/` — Fastify（TypeScript / ESM）
+- `external-api/` — **別アプリ**（画面なしの Fastify API + 専用 DB）。backend から外部API呼び出しを練習するための送り先。詳細は [external-api/README.md](external-api/README.md)
 - ローカル開発は Docker の PostgreSQL を使用（AWS には触れずコスト 0）
 - スキーマはマイグレーション（SQL）で管理し、同じものを後で RDS に流す
 
@@ -19,7 +20,10 @@ monorepo（pnpm workspace）。
 pnpm install        # ルートで一括インストール
 pnpm dev:front      # フロント開発サーバー（http://localhost:3000）
 pnpm dev:back       # バックエンド開発サーバー（http://localhost:3002）
+pnpm dev:ext        # 別アプリ external-api（http://localhost:3003）
 ```
+
+ポートは 3000 / 3002 / 3003 で分かれており、それぞれ独立したプロセスとして起動する。
 
 ## データベース
 
@@ -27,7 +31,7 @@ pnpm dev:back       # バックエンド開発サーバー（http://localhost:30
 テーブルのあるべき完成形を `backend/src/db/schema.ts` の1ファイルに書き、`pnpm db:push` で差分だけ DB に当てる（既存データは消えない）。同じスキーマを後で RDS にも適用する。
 
 ```bash
-docker compose up -d            # PostgreSQL 起動（localhost:5432、空のDB）
+docker compose up -d            # PostgreSQL 起動（localhost:5432、空のDB）※ external-api 用の DB（localhost:5433）も一緒に起動する
 pnpm --filter backend db:push   # schema.ts の内容を DB に反映（初回はテーブル作成）
 docker compose down             # 停止（データは残る）
 docker compose down -v          # 停止 + データ削除（まっさらに作り直したいとき）
@@ -51,6 +55,26 @@ docker compose down -v          # 停止 + データ削除（まっさらに作�
 
 - `accounts` … アカウント（`name` / `email`(unique) / `passwordHash`）。
   パスワードは平文では保存せず、登録 API でハッシュ化した値を `passwordHash` に入れる。
+
+## 外部API呼び出し（external-api）
+
+外部サービスを HTTP で呼ぶ練習用に、同じリポジトリへ独立したアプリ `external-api`（:3003、専用 DB `external_api`）を置いている。ゲーム作成時に backend からイベントを POST する。
+
+```
+POST /games (backend :3002)
+  ├─ games テーブルに保存
+  ├─ SES で作成通知メール
+  └─ POST http://localhost:3003/events   ← 外部API呼び出し
+       backend/src/infrastructure/externalApi/index.ts
+       ▼
+   external-api (:3003) → events テーブル（別 DB）
+```
+
+送信は付随的な処理なので、失敗してもゲーム作成は成功する（ログに残すだけ）。届いたイベントは次で確認できる。
+
+```bash
+curl -H 'x-api-key: local-dev-key' 'http://localhost:3003/events?limit=5'
+```
 
 ### 持たせる想定（叩き台）
 

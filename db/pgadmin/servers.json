@@ -7,6 +7,14 @@
       "Port": 5432,
       "MaintenanceDB": "memory_game",
       "Username": "postgres"
+    },
+    "2": {
+      "Name": "external-api",
+      "Group": "Servers",
+      "Host": "external-db",
+      "Port": 5432,
+      "MaintenanceDB": "external_api",
+      "Username": "postgres"
     }
   }
 }
