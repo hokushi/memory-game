@@ -45,6 +45,9 @@ services:
       # アップロード時に失敗する）。`export AWS_ACCESS_KEY_ID=...` 等で渡す。
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # イベント送信先の別アプリ。コンテナ内からはサービス名で繋ぐ。
+      EXTERNAL_API_URL: http://external-api:3003
+      EXTERNAL_API_KEY: ${EXTERNAL_API_KEY:-local-dev-key}
     ports:
       - "3002:3002"
     depends_on:
@@ -54,6 +57,50 @@ services:
       # ソースだけマウントしてホットリロード（node_modules はイメージ側を使う）
       - ./backend/src:/app/backend/src
 
+  # 別アプリ（external-api）用の PostgreSQL。
+  # memory-game とは DB ごと分ける（外部サービスという想定なので、
+  # 同じ DB を覗きに行けてしまうと「別アプリ」にならない）。
+  # ホストからは 5433 で繋ぐ（5432 は memory-game が使っている）。
+  external-db:
+    image: postgres:17
+    container_name: external-api-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: external_api
+    ports:
+      - "5433:5432"
+    volumes:
+      - externalpgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d external_api"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 別アプリ（Fastify、画面なし）。memory-game から見た「外部API」。
+  external-api:
+    build:
+      context: .
+      dockerfile: external-api/Dockerfile.dev
+    container_name: external-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: local
+      PORT: 3003
+      HOST: 0.0.0.0
+      DATABASE_URL: postgres://postgres:postgres@external-db:5432/external_api
+      # 呼び出し側（backend の EXTERNAL_API_KEY）と同じ値にする
+      API_KEY: ${EXTERNAL_API_KEY:-local-dev-key}
+    ports:
+      - "3003:3003"
+    depends_on:
+      external-db:
+        condition: service_healthy
+    volumes:
+      - ./external-api/src:/app/external-api/src
+
   # DB を GUI で見るための pgAdmin（http://localhost:8080）
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -62,16 +109,18 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
-      # 起動時に memory-game サーバーを自動登録する
+      # 起動時に memory-game / external-api の2サーバーを自動登録する
       PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
     ports:
       - "8080:80"
     depends_on:
       - db
+      - external-db
     volumes:
       - pgadmin:/var/lib/pgadmin
       - ./db/pgadmin/servers.json:/pgadmin4/servers.json:ro
 
 volumes:
   pgdata:
+  externalpgdata:
   pgadmin:

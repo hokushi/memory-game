@@ -12,6 +12,9 @@
     "lint:front": "pnpm --filter frontend lint",
     "dev:back": "pnpm --filter backend dev",
     "build:back": "pnpm --filter backend build",
-    "start:back": "pnpm --filter backend start"
+    "start:back": "pnpm --filter backend start",
+    "dev:ext": "pnpm --filter external-api dev",
+    "build:ext": "pnpm --filter external-api build",
+    "start:ext": "pnpm --filter external-api start"
   }
 }

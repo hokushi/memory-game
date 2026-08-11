@@ -1,6 +1,7 @@
 packages:
   - frontend
   - backend
+  - external-api
 
 allowBuilds:
   esbuild: set this to true or false
